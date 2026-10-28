@@ -1,4 +1,5 @@
 import { createLivestockSeed, type Animal, type AnimalGender, type LivestockBook, type LivestockSpecies, type ProductionBatch } from "@/lib/livestock";
+import { noteLedgerWrite } from "@/lib/ledger-bus";
 
 export const LIVESTOCK_KEY = "kohego.livestock.v1";
 
@@ -32,35 +33,43 @@ function migrateAnimal(raw: Partial<Animal> & Pick<Animal, "id" | "earTag" | "sp
   };
 }
 
+export function parseLivestockBook(input: unknown): LivestockBook | null {
+  if (!input || typeof input !== "object") return null;
+  const parsed = input as {
+    version?: number;
+    pens?: LivestockBook["pens"];
+    animals?: Animal[];
+    waste?: LivestockBook["waste"];
+    batches?: ProductionBatch[];
+  };
+  if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.pens) || !Array.isArray(parsed.animals) || !Array.isArray(parsed.waste)) {
+    return null;
+  }
+  return {
+    version: 2,
+    pens: parsed.pens,
+    animals: parsed.animals.map((item) => migrateAnimal(item)),
+    waste: parsed.waste,
+    batches: Array.isArray(parsed.batches) ? parsed.batches : [],
+  };
+}
+
 export function loadLivestock(): LivestockBook {
   try {
     const raw = localStorage.getItem(LIVESTOCK_KEY);
     if (!raw) return createLivestockSeed();
-    const parsed = JSON.parse(raw) as {
-      version?: number;
-      pens?: LivestockBook["pens"];
-      animals?: Animal[];
-      waste?: LivestockBook["waste"];
-      batches?: ProductionBatch[];
-    };
-    if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.pens) || !Array.isArray(parsed.animals) || !Array.isArray(parsed.waste)) {
-      return createLivestockSeed();
-    }
-    return {
-      version: 2,
-      pens: parsed.pens,
-      animals: parsed.animals.map((item) => migrateAnimal(item)),
-      waste: parsed.waste,
-      batches: Array.isArray(parsed.batches) ? parsed.batches : [],
-    };
+    return parseLivestockBook(JSON.parse(raw) as unknown) ?? createLivestockSeed();
   } catch {
     return createLivestockSeed();
   }
 }
 
+let quietWrites = false;
+
 export function saveLivestock(book: LivestockBook) {
   try {
     localStorage.setItem(LIVESTOCK_KEY, JSON.stringify(book));
+    if (!quietWrites) noteLedgerWrite("livestock");
     return true;
   } catch {
     return false;
@@ -98,9 +107,12 @@ export function getLivestockServer(): LivestockBook | null {
   return null;
 }
 
-export function replaceLivestock(next: LivestockBook) {
+export function replaceLivestock(next: LivestockBook, options?: { quiet?: boolean }) {
+  const previous = quietWrites;
+  quietWrites = options?.quiet ?? false;
   memory = next;
   const saved = saveLivestock(next);
+  quietWrites = previous;
   listeners.forEach((listener) => listener());
   return saved;
 }

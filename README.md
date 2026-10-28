@@ -2,7 +2,7 @@
 
 Dasbor penjualan dan distribusi pupuk organik untuk tim lapangan. KoheGo mencatat pesanan, stok kemasan, mitra, kandang, konversi kohe menjadi pupuk, dan antrian unggahan ke TikTok, Instagram, Facebook, serta Threads.
 
-Aplikasi berjalan di perangkat lebih dulu. Pesanan, stok, ternak, dan draf unggahan tersimpan di browser, jadi agen tetap bisa mencatat saat sinyal lemah. PostgreSQL dipakai untuk token sosmed, batch produksi, dan ledger server saat `DATABASE_URL` diisi.
+Aplikasi tetap bisa mencatat di browser saat sinyal lemah. Saat `DATABASE_URL` diisi, pesanan, stok, mitra, kandang, antrian penerbit, dan daftar pengguna ikut tersimpan di PostgreSQL supaya perangkat lain membaca data yang sama. Foto dan video tetap di browser.
 
 ## Mulai
 

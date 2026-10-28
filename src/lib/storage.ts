@@ -1,4 +1,5 @@
 import { PRODUCTS, packageSizeOf } from "@/lib/catalog";
+import { noteLedgerWrite } from "@/lib/ledger-bus";
 import { createSeed } from "@/lib/seed";
 import type { AppData, Partner, Product, Warehouse } from "@/lib/types";
 
@@ -42,7 +43,7 @@ function healProduct(value: unknown): Product | null {
   return { ...product, packageSize: product.packageSize ?? packageSizeOf(product) };
 }
 
-function heal(input: unknown): AppData | null {
+export function parseSalesBook(input: unknown): AppData | null {
   const parsed = asRecord(input);
   if (!parsed) return null;
   const version = parsed.version;
@@ -78,16 +79,19 @@ export function loadState(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createSeed();
-    const healed = heal(JSON.parse(raw) as Partial<AppData>);
+    const healed = parseSalesBook(JSON.parse(raw) as Partial<AppData>);
     return healed ?? createSeed();
   } catch {
     return createSeed();
   }
 }
 
+let quietWrites = false;
+
 export function saveState(data: AppData) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (!quietWrites) noteLedgerWrite("sales");
     return true;
   } catch {
     return false;
@@ -122,9 +126,12 @@ export function getServerSnapshot(): AppData | null {
   return null;
 }
 
-export function replaceState(next: AppData) {
+export function replaceState(next: AppData, options?: { quiet?: boolean }) {
+  const previous = quietWrites;
+  quietWrites = options?.quiet ?? false;
   memory = next;
   const saved = saveState(next);
+  quietWrites = previous;
   listeners.forEach((listener) => listener());
   return saved;
 }

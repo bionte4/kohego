@@ -33,7 +33,7 @@ Salin dari `.env.example`. Jangan mengisi rahasia di file contoh, dan jangan men
 
 | Variabel | Pemakaian |
 | --- | --- |
-| `DATABASE_URL` | PostgreSQL untuk token sosmed, ternak server, dan batch produksi |
+| `DATABASE_URL` | PostgreSQL untuk pesanan, stok, mitra, kandang, penerbit, pengguna, dan token sosmed |
 | `TOKEN_ENCRYPTION_KEY` | Kunci AES-256-GCM, 32 byte dalam base64. Buat dengan `openssl rand -base64 32` |
 | `ROLE_SESSION_SECRET` | Menandatangani cookie peran. Jika kosong, aplikasi memakai `TOKEN_ENCRYPTION_KEY` |
 | `KOHEGO_ALLOW_ROLE_SWITCH` | Isi `1` agar pengganti peran tetap hidup saat `NODE_ENV=production` |
@@ -44,18 +44,44 @@ Salin dari `.env.example`. Jangan mengisi rahasia di file contoh, dan jangan men
 
 Tanpa `DATABASE_URL`, halaman Akun Sosmed menampilkan peringatan dan tombol Hubungkan tidak aktif. Dasbor, pesanan, kandang, dan penerbit tetap jalan dari penyimpanan browser.
 
+Dengan `DATABASE_URL`, browser mengirim buku penjualan, kandang, penerbit, dan pengguna ke tabel `ledgers`. Perangkat lain yang membuka aplikasi yang sama membaca buku itu. Foto dan video unggahan tetap di browser.
+
 ## Database
 
 1. Buat database PostgreSQL.
-2. Isi `DATABASE_URL`.
-3. Isi `TOKEN_ENCRYPTION_KEY` sebelum menyimpan token.
-4. Jalankan `npm run db:migrate`.
+2. Isi `DATABASE_URL` dan `TOKEN_ENCRYPTION_KEY`.
+3. Jalankan `npm run db:migrate`.
+4. Bangun ulang aplikasi dan jalankan ulang prosesnya.
+
+Di VPS:
+
+```bash
+sudo apt install -y postgresql
+sudo -u postgres psql -c "CREATE USER kohego WITH PASSWORD 'ganti-password-ini';"
+sudo -u postgres psql -c "CREATE DATABASE kohego OWNER kohego;"
+```
+
+Tambahkan ke `/etc/kohego.env`:
+
+```bash
+DATABASE_URL=postgresql://kohego:ganti-password-ini@127.0.0.1:5432/kohego?schema=public
+TOKEN_ENCRYPTION_KEY=hasil-openssl-rand-base64-32
+```
+
+Lalu:
+
+```bash
+cd /var/www/kohego
+sudo -u www-data env $(grep -v '^#' /etc/kohego.env | xargs) npx prisma migrate deploy
+sudo systemctl restart kohego
+```
 
 Migrasi yang ada:
 
 - `20261028150000_social_accounts` — akun OAuth
 - `20261028163000_livestock` — kandang, ternak, dan kohe
 - `20261028170000_production_batches` — log koleksi, varian, dan batch produksi
+- `20261028183000_ledgers` — buku penjualan, kandang, penerbit, dan pengguna
 
 Mengganti `TOKEN_ENCRYPTION_KEY` membuat token yang sudah tersimpan tidak bisa dibaca.
 

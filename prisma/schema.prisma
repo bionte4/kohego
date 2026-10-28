@@ -146,6 +146,17 @@ model ProductVariant {
   @@map("product_variants")
 }
 
+/// Company books shared by every browser: sales, livestock, publisher, and staff.
+/// revision increments on each save so two devices cannot silently overwrite each other.
+model Ledger {
+  key       String   @id
+  revision  Int
+  payload   Json
+  updatedAt DateTime @updatedAt
+
+  @@map("ledgers")
+}
+
 /// Composting batch. output_units = floor((raw_weight_kg * conversion_rate) / package_size).
 model ProductionBatch {
   id             String           @id
