@@ -1,6 +1,7 @@
 "use client";
 
 import { Sprout } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/components/access/role-provider";
@@ -16,6 +17,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const notice =
     params.get("status") === "menunggu"
       ? "Akun Google ini baru. Super admin perlu menetapkan peran di menu Pengguna sebelum Anda bisa masuk."
@@ -23,7 +25,14 @@ export function LoginForm() {
         ? "Google belum mengonfirmasi email akun ini."
         : params.get("google") === "belum"
           ? "Masuk dengan Google belum diaktifkan di server."
-          : null;
+          : params.get("error")
+            ? "Masuk dengan Google tidak selesai. Coba lagi."
+            : null;
+
+  function onGoogle() {
+    setGooglePending(true);
+    void signIn("google", { callbackUrl: "/dashboard" });
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -73,10 +82,10 @@ export function LoginForm() {
               {notice}
             </p>
           ) : null}
-          <a href="/api/auth/signin/google?callbackUrl=/dashboard" className={buttonClass("secondary", "w-full")}>
+          <button type="button" className={buttonClass("secondary", "w-full")} onClick={onGoogle} disabled={googlePending}>
             <GoogleMark />
-            Masuk dengan Google
-          </a>
+            {googlePending ? "Menghubungkan Google..." : "Masuk dengan Google"}
+          </button>
           <div className="my-4 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
             <span className="h-px flex-1 bg-slate-200" />
             atau
