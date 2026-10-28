@@ -146,6 +146,19 @@ model ProductVariant {
   @@map("product_variants")
 }
 
+/// Staff sign-in secret. The hash never goes back to the browser.
+model LoginCredential {
+  id           String   @id
+  email        String   @unique
+  name         String
+  role         String
+  active       Boolean  @default(true)
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+
+  @@map("login_credentials")
+}
+
 /// Company books shared by every browser: sales, livestock, publisher, and staff.
 /// revision increments on each save so two devices cannot silently overwrite each other.
 model Ledger {

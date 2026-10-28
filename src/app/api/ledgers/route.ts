@@ -16,6 +16,7 @@ function accept(key: LedgerKey, payload: unknown) {
 
 export async function GET() {
   const role = await readSessionRole();
+  if (!role) return Response.json({ message: "Masuk diperlukan." }, { status: 401 });
   const db = getDb();
   if (!db) return Response.json({ configured: false, role, ledgers: {} }, { status: 503 });
   const rows = await db.ledger.findMany();
@@ -29,6 +30,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const role = await readSessionRole();
+  if (!role) return Response.json({ message: "Masuk diperlukan." }, { status: 401 });
   const db = getDb();
   if (!db) return Response.json({ message: "Database belum diatur." }, { status: 503 });
   const body = (await request.json().catch(() => null)) as { key?: unknown; revision?: unknown; payload?: unknown } | null;

@@ -41,6 +41,17 @@ export function setStoredRole(role: Role) {
   listeners.forEach((listener) => listener());
 }
 
+export function clearStoredRole() {
+  epoch += 1;
+  memory = null;
+  try {
+    window.localStorage.removeItem(KEY);
+  } catch {
+    // The cookie is cleared by the server even when the device store is blocked.
+  }
+  listeners.forEach((listener) => listener());
+}
+
 export function subscribeRole(listener: () => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);

@@ -18,6 +18,7 @@ export function UserForm({
   onSave: (values: UserFormValues) => Promise<string | null>;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState("");
   const {
     register,
     handleSubmit,
@@ -34,7 +35,16 @@ export function UserForm({
       className="space-y-4"
       onSubmit={handleSubmit(async (values) => {
         setFormError(null);
-        const message = await onSave(values);
+        const password = values.password?.trim() ?? "";
+        if (!user && password.length < 8) {
+          setFormError("Isi kata sandi, minimal 8 karakter.");
+          return;
+        }
+        if (password && password !== confirm.trim()) {
+          setFormError("Ulangan kata sandi tidak sama.");
+          return;
+        }
+        const message = await onSave({ ...values, password });
         if (message) setFormError(message);
         else onClose();
       })}
@@ -59,6 +69,18 @@ export function UserForm({
           ))}
         </select>
         {errors.role ? <span className="mt-1.5 block text-xs text-red-700">{errors.role.message}</span> : null}
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-ink">Kata sandi</span>
+        <input className={controlClass} type="password" autoComplete="new-password" {...register("password")} />
+        <span className="mt-1.5 block text-xs text-slate-500">
+          {user ? "Kosongkan jika kata sandi tidak diganti. Minimal 8 karakter." : "Minimal 8 karakter. Dipakai untuk masuk."}
+        </span>
+        {errors.password ? <span className="mt-1.5 block text-xs text-red-700">{errors.password.message}</span> : null}
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-ink">Ulangi kata sandi</span>
+        <input className={controlClass} type="password" autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} />
       </label>
       <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-300 bg-white px-3">
         <input type="checkbox" className="size-5 accent-forest-800" {...register("active")} />

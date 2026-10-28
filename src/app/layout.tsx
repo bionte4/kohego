@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
-import { AppShell } from "@/components/layout/app-shell";
+import { AuthGate } from "@/components/access/auth-gate";
 import { RoleProvider } from "@/components/access/role-provider";
-import { LedgerSync } from "@/components/providers/ledger-sync";
 import { StoreProvider } from "@/components/providers/store-provider";
 import "./globals.css";
 
@@ -44,8 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full bg-paper font-sans text-ink">
         <RoleProvider>
           <StoreProvider>
-            <LedgerSync />
-            <AppShell>{children}</AppShell>
+            <AuthGate>{children}</AuthGate>
           </StoreProvider>
         </RoleProvider>
       </body>

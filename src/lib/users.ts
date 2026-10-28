@@ -1,12 +1,20 @@
 import { z } from "zod";
 import { ROLES, type Role } from "@/lib/rbac";
 
-export const userFormSchema = z.object({
-  name: z.string().trim().min(2, "Isi nama, minimal 2 karakter.").max(80, "Nama paling panjang 80 karakter."),
-  email: z.string().trim().email("Email tidak valid.").max(120, "Email paling panjang 120 karakter."),
-  role: z.enum(ROLES),
-  active: z.boolean(),
-});
+export const userFormSchema = z
+  .object({
+    name: z.string().trim().min(2, "Isi nama, minimal 2 karakter.").max(80, "Nama paling panjang 80 karakter."),
+    email: z.string().trim().email("Email tidak valid.").max(120, "Email paling panjang 120 karakter."),
+    role: z.enum(ROLES),
+    active: z.boolean(),
+    password: z.string().trim().max(80, "Kata sandi paling panjang 80 karakter.").optional(),
+  })
+  .superRefine((value, ctx) => {
+    const password = value.password?.trim() ?? "";
+    if (password && password.length < 8) {
+      ctx.addIssue({ code: "custom", path: ["password"], message: "Kata sandi minimal 8 karakter." });
+    }
+  });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
 

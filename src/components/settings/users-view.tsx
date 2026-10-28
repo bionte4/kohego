@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useCan } from "@/components/access/role-provider";
 import { RoleBadge, StatusBadge } from "@/components/settings/role-badge";
 import { UserForm } from "@/components/settings/user-form";
@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { guard } from "@/lib/guard";
 import { getUsersClient, getUsersServer, replaceUsers, subscribeUsers } from "@/lib/users-store";
 import { activeAdminCount, addUser, removeUser, updateUser, type StaffUser, type UserFormValues } from "@/lib/users";
+import { isRole } from "@/lib/rbac";
 import { uid } from "@/lib/utils";
 
 export function UsersView() {
@@ -21,12 +22,38 @@ export function UsersView() {
   const [removing, setRemoving] = useState<StaffUser | null>(null);
   const [statusTarget, setStatusTarget] = useState<StaffUser | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [readyIds, setReadyIds] = useState<string[]>([]);
+  const [pendingGoogle, setPendingGoogle] = useState<StaffUser[]>([]);
+
+  function refreshPasswords() {
+    void fetch("/api/users")
+      .then((response) => response.json())
+      .then((body: { readyIds?: unknown; pending?: unknown }) => {
+        if (Array.isArray(body.readyIds)) setReadyIds(body.readyIds.filter((id): id is string => typeof id === "string"));
+        if (Array.isArray(body.pending)) {
+          setPendingGoogle(
+            body.pending.flatMap((item) => {
+              if (!item || typeof item !== "object") return [];
+              const row = item as Partial<StaffUser>;
+              if (typeof row.id !== "string" || typeof row.name !== "string" || typeof row.email !== "string" || !isRole(row.role)) return [];
+              return [{ id: row.id, name: row.name, email: row.email, role: row.role, active: false, updatedAt: "" }];
+            }),
+          );
+        }
+      })
+      .catch(() => undefined);
+  }
+
+  useEffect(() => {
+    refreshPasswords();
+  }, []);
 
   if (!directory) {
     return <p className="text-sm text-slate-500">Menyiapkan daftar pengguna...</p>;
   }
   const data = directory;
   const admins = activeAdminCount(data.users);
+  const waiting = pendingGoogle.filter((person) => !data.users.some((user) => user.id === person.id || user.email === person.email));
 
   function commit(result: { ok: true; directory: typeof data } | { ok: false; message: string }) {
     if (!result.ok) return result.message;
@@ -34,11 +61,24 @@ export function UsersView() {
   }
 
   async function onCreate(values: UserFormValues) {
-    const denied = await guard("users", "create", values);
+    const id = uid("usr");
+    const denied = await guard("users", "create", { id, ...values });
     if (denied) return denied;
     const current = getUsersClient();
     if (!current) return "Daftar pengguna belum siap.";
-    return commit(addUser(current, values, uid("usr"), new Date().toISOString()));
+    const message = commit(addUser(current, values, id, new Date().toISOString()));
+    if (!message) refreshPasswords();
+    return message;
+  }
+
+  async function onAssign(userId: string, values: UserFormValues) {
+    const denied = await guard("users", "update", { id: userId, ...values });
+    if (denied) return denied;
+    const current = getUsersClient();
+    if (!current) return "Daftar pengguna belum siap.";
+    const message = commit(addUser(current, values, userId, new Date().toISOString()));
+    if (!message) refreshPasswords();
+    return message;
   }
 
   async function onUpdate(userId: string, values: UserFormValues) {
@@ -46,7 +86,9 @@ export function UsersView() {
     if (denied) return denied;
     const current = getUsersClient();
     if (!current) return "Daftar pengguna belum siap.";
-    return commit(updateUser(current, userId, values, new Date().toISOString()));
+    const message = commit(updateUser(current, userId, values, new Date().toISOString()));
+    if (!message) refreshPasswords();
+    return message;
   }
 
   async function onRemove(user: StaffUser) {
@@ -74,6 +116,35 @@ export function UsersView() {
           </Button>
         ) : null}
       </div>
+      {waiting.length > 0 ? (
+        <section className="rounded-2xl border border-earth-100 bg-earth-50 p-4">
+          <h2 className="font-display text-lg text-earth-900">Menunggu penetapan peran</h2>
+          <p className="mt-1 mb-3 text-sm leading-6 text-earth-900">
+            Akun Google baru masuk sebagai penjualan lapangan dan belum aktif. Tetapkan peran, lalu aktifkan agar mereka bisa masuk.
+          </p>
+          <ul className="space-y-2">
+            {waiting.map((person) => (
+              <li key={person.id} className="flex flex-col gap-2 rounded-xl bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  <span className="block font-semibold text-ink">{person.name}</span>
+                  <span className="text-sm text-slate-600">{person.email}</span>
+                </span>
+                {canUpdate ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setCreating(false);
+                      setEditing(person);
+                    }}
+                  >
+                    Tetapkan peran
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-red-700">
           {error}
@@ -83,7 +154,7 @@ export function UsersView() {
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-forest-50 text-forest-950">
             <tr>
-              {["Nama", "Email", "Peran", "Status", ""].map((label) => (
+              {["Nama", "Email", "Peran", "Status", "Kata sandi", ""].map((label) => (
                 <th key={label || "aksi"} className="px-3 py-3 font-medium">
                   {label}
                 </th>
@@ -101,6 +172,7 @@ export function UsersView() {
                 <td className="px-3 py-3">
                   <StatusBadge active={user.active} />
                 </td>
+                <td className="px-3 py-3 text-slate-600">{readyIds.includes(user.id) ? "Siap" : "Belum diatur"}</td>
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap gap-2">
                     {canUpdate ? (
@@ -133,7 +205,7 @@ export function UsersView() {
       </div>
       <Modal
         open={creating || editing !== null}
-        title={editing ? "Edit pengguna" : "Tambah pengguna"}
+        title={editing ? (data.users.some((user) => user.id === editing.id) ? "Edit pengguna" : "Tetapkan peran") : "Tambah pengguna"}
         onClose={() => {
           setCreating(false);
           setEditing(null);
@@ -147,7 +219,10 @@ export function UsersView() {
               setCreating(false);
               setEditing(null);
             }}
-            onSave={(values) => (editing ? onUpdate(editing.id, values) : onCreate(values))}
+            onSave={(values) => {
+              if (!editing) return onCreate(values);
+              return data.users.some((user) => user.id === editing.id) ? onUpdate(editing.id, values) : onAssign(editing.id, values);
+            }}
           />
         ) : null}
       </Modal>

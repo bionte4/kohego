@@ -36,6 +36,10 @@ Salin dari `.env.example`. Jangan mengisi rahasia di file contoh, dan jangan men
 | `DATABASE_URL` | PostgreSQL untuk pesanan, stok, mitra, kandang, penerbit, pengguna, dan token sosmed |
 | `TOKEN_ENCRYPTION_KEY` | Kunci AES-256-GCM, 32 byte dalam base64. Buat dengan `openssl rand -base64 32` |
 | `ROLE_SESSION_SECRET` | Menandatangani cookie peran. Jika kosong, aplikasi memakai `TOKEN_ENCRYPTION_KEY` |
+| `NEXTAUTH_SECRET` | Mengenkripsi sesi Google. Buat dengan `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Alamat publik aplikasi, misalnya `https://kohego.my.id` |
+| `GOOGLE_CLIENT_ID` | OAuth client Google untuk tombol Masuk dengan Google |
+| `GOOGLE_CLIENT_SECRET` | Rahasia client Google. Kosongkan ketiganya jika tombol Google belum dipakai |
 | `KOHEGO_ALLOW_ROLE_SWITCH` | Isi `1` agar pengganti peran tetap hidup saat `NODE_ENV=production` |
 | `META_APP_ID` | App Meta untuk Facebook dan Instagram |
 | `META_APP_SECRET` | Rahasia app Meta |
@@ -87,4 +91,4 @@ Mengganti `TOKEN_ENCRYPTION_KEY` membuat token yang sudah tersimpan tidak bisa d
 
 ## Produksi
 
-Di production, cookie peran yang hilang dibaca sebagai penjualan lapangan. Pengganti peran di header mati kecuali `KOHEGO_ALLOW_ROLE_SWITCH=1`. Pasang login sungguhan sebelum membuka aplikasi ke internet; pengganti peran ini untuk uji lokal.
+Halaman aplikasi meminta masuk. Akun contoh memakai kata sandi `Kohego2026`: `rina@kohego.local` (super admin), `agus@kohego.local` (manajer kandang), `bambang@kohego.local` (admin gudang), dan `dewi@kohego.local` (penjualan lapangan). Menu mengikuti peran akun. Pengganti peran di header hanya hidup saat pengembangan, atau di production bila `KOHEGO_ALLOW_ROLE_SWITCH=1`.

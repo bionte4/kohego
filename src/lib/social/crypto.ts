@@ -33,3 +33,17 @@ export function decryptSecret(payload: string) {
   const plain = Buffer.concat([decipher.update(Buffer.from(dataPart, "base64url")), decipher.final()]);
   return plain.toString("utf8");
 }
+
+const STORED_PLAIN = new Set(["revoked", "google-oauth"]);
+
+/** AES-256-GCM for hashes and tokens. Sentinels and a missing key stay readable. */
+export function sealAtRest(value: string) {
+  if (STORED_PLAIN.has(value) || value.startsWith(`${VERSION}.`)) return value;
+  if (!process.env.TOKEN_ENCRYPTION_KEY?.trim()) return value;
+  return encryptSecret(value);
+}
+
+export function openAtRest(value: string) {
+  if (!value.startsWith(`${VERSION}.`)) return value;
+  return decryptSecret(value);
+}

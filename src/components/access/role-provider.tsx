@@ -2,12 +2,23 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore } from "react";
 import { can, isRole, type CrudAction, type Resource, type Role } from "@/lib/rbac";
-import { getRoleClient, getRoleServer, roleEpoch, setStoredRole, subscribeRole } from "@/lib/role-store";
+import { clearStoredRole, getRoleClient, getRoleServer, roleEpoch, setStoredRole, subscribeRole } from "@/lib/role-store";
 
 const RoleContext = createContext<Role | null>(null);
 
+export interface SessionUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface AuthActions {
+  ready: boolean;
+  user: SessionUser | null;
+  switchable: boolean;
   switchRole: (next: Role) => Promise<void>;
+  establish: (role: Role, user: SessionUser) => void;
+  logout: () => Promise<void>;
   switching: boolean;
   error: string | null;
 }
@@ -16,6 +27,9 @@ const AuthActionsContext = createContext<AuthActions | null>(null);
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const role = useSyncExternalStore(subscribeRole, getRoleClient, getRoleServer);
+  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [switchable, setSwitchable] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,14 +37,23 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const seen = roleEpoch();
     fetch("/api/session")
       .then((response) => response.json())
-      .then((body: { role?: unknown }) => {
-        if (roleEpoch() !== seen || !isRole(body.role)) return;
+      .then((body: { role?: unknown; user?: SessionUser | null; switchable?: boolean }) => {
+        if (roleEpoch() !== seen) return;
+        setSwitchable(body.switchable === true);
+        if (!isRole(body.role) || !body.user?.id) {
+          clearStoredRole();
+          setUser(null);
+          return;
+        }
         setStoredRole(body.role);
+        setUser({ id: body.user.id, name: body.user.name, email: body.user.email });
       })
       .catch(() => {
-        if (roleEpoch() !== seen || getRoleClient()) return;
-        setStoredRole("SUPER_ADMIN");
-      });
+        if (roleEpoch() !== seen) return;
+        clearStoredRole();
+        setUser(null);
+      })
+      .finally(() => setReady(true));
   }, []);
 
   const switchRole = useCallback(async (next: Role) => {
@@ -56,9 +79,23 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const establish = useCallback((next: Role, nextUser: SessionUser) => {
+    setStoredRole(next);
+    setUser(nextUser);
+    setReady(true);
+  }, []);
+
+  const logout = useCallback(async () => {
+    await fetch("/api/session", { method: "DELETE" });
+    clearStoredRole();
+    setUser(null);
+  }, []);
+
   return (
     <RoleContext.Provider value={role}>
-      <AuthActionsContext.Provider value={{ switchRole, switching, error }}>{children}</AuthActionsContext.Provider>
+      <AuthActionsContext.Provider value={{ ready, user, switchable, switchRole, establish, logout, switching, error }}>
+        {children}
+      </AuthActionsContext.Provider>
     </RoleContext.Provider>
   );
 }
