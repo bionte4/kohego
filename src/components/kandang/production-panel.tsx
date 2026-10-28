@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useCan } from "@/components/access/role-provider";
+import { useStoreState } from "@/components/providers/store-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Field, TextInput } from "@/components/ui/field";
-import { productById } from "@/lib/catalog";
+import { PRODUCTS, productById } from "@/lib/catalog";
 import { formatDateTime, formatWeight } from "@/lib/format";
 import { packageUnitLabel } from "@/lib/labels";
 import {
@@ -36,15 +37,17 @@ export function ProductionPanel({
   }) => Promise<string | null>;
 }) {
   const canComplete = useCan("production", "create");
+  const sales = useStoreState();
+  const catalog = sales.ready ? sales.products : PRODUCTS;
   const [species, setSpecies] = useState<LivestockSpecies>("kambing");
-  const variants = conversionVariants(species);
+  const variants = conversionVariants(species, catalog);
   const [variantId, setVariantId] = useState<VariantId>(variants[0]);
   const [rate, setRate] = useState(String(suggestedRate("kambing", variants[0])));
   const [raw, setRaw] = useState("");
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
   const available = availableWasteKg(book.waste, species);
-  const measure = packageMeasure(variantId);
+  const measure = packageMeasure(variantId, catalog);
   const rawKg = Number.parseFloat(raw.replace(",", "."));
   const conversionRate = Number.parseFloat(rate.replace(",", "."));
   const estimate =
@@ -54,16 +57,16 @@ export function ProductionPanel({
   const ready = estimate && !("ok" in estimate) && estimate.packages >= 1;
 
   function chooseSpecies(next: LivestockSpecies) {
-    const options = conversionVariants(next);
+    const options = conversionVariants(next, catalog);
     const variant = options[0];
     setSpecies(next);
     setVariantId(variant);
-    setRate(String(suggestedRate(next, variant)));
+    setRate(String(suggestedRate(next, variant, catalog)));
   }
 
   function chooseVariant(next: VariantId) {
     setVariantId(next);
-    setRate(String(suggestedRate(species, next)));
+    setRate(String(suggestedRate(species, next, catalog)));
   }
 
   return (
@@ -119,7 +122,7 @@ export function ProductionPanel({
             >
               {variants.map((id) => (
                 <option key={id} value={id}>
-                  {productById(id).label}
+                  {productById(id, catalog).label}
                 </option>
               ))}
             </select>
@@ -159,7 +162,7 @@ export function ProductionPanel({
         ) : (
           <ul className="space-y-3">
             {book.batches.map((batch) => {
-              const product = productById(batch.variantId);
+              const product = productById(batch.variantId, catalog);
               return (
                 <li key={batch.id} className="rounded-2xl border border-slate-200 px-3 py-3">
                   <div className="flex flex-wrap items-start justify-between gap-2">

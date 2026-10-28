@@ -31,6 +31,8 @@ const emptyDraft = {
   region: "",
   days: "0",
   limit: "0",
+  lat: "",
+  lng: "",
 };
 
 export function PartnerDirectory() {
@@ -360,7 +362,7 @@ function PartnerDetail({
           </a>
           <a
             className={buttonClass("secondary", "flex-col gap-1 px-2 text-xs")}
-            href={mapsHref(`${partner.address}, ${partner.city}`)}
+            href={mapsHref(partner.geo ? `${partner.geo.lat},${partner.geo.lng}` : `${partner.address}, ${partner.city}`)}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -370,6 +372,9 @@ function PartnerDetail({
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-600">
           {partner.address}, {partner.city}, {partner.region}
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          {partner.geo ? `Koordinat ${partner.geo.lat}, ${partner.geo.lng}` : "Koordinat belum diisi."}
         </p>
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -446,6 +451,8 @@ function PartnerForm({
           region: partner.region,
           days: String(partner.creditTermsDays),
           limit: String(partner.creditLimitIdr),
+          lat: partner.geo ? String(partner.geo.lat) : "",
+          lng: partner.geo ? String(partner.geo.lng) : "",
         }
       : emptyDraft,
   );
@@ -467,6 +474,14 @@ function PartnerForm({
       region: draft.region,
       creditTermsDays: Number.parseInt(draft.days || "0", 10),
       creditLimitIdr: Number.parseInt(draft.limit.replace(/[^\d]/g, "") || "0", 10),
+      geo:
+        draft.lat.trim() === "" && draft.lng.trim() === ""
+          ? null
+          : {
+              lat: Number(draft.lat.replace(",", ".")),
+              lng: Number(draft.lng.replace(",", ".")),
+              accuracyM: null,
+            },
     });
     if (!result.ok) {
       setError(result.message ?? "Mitra tidak dapat disimpan.");
@@ -532,6 +547,22 @@ function PartnerForm({
               inputMode="numeric"
               value={draft.days}
               onChange={(event) => update({ days: event.target.value.replace(/[^\d]/g, "") })}
+            />
+          </Field>
+          <Field label="Lintang" hint="Opsional. Isi bersama bujur.">
+            <TextInput
+              inputMode="decimal"
+              value={draft.lat}
+              placeholder="-6.816"
+              onChange={(event) => update({ lat: event.target.value })}
+            />
+          </Field>
+          <Field label="Bujur">
+            <TextInput
+              inputMode="decimal"
+              value={draft.lng}
+              placeholder="107.617"
+              onChange={(event) => update({ lng: event.target.value })}
             />
           </Field>
           <Field label="Plafon konsinyasi (Rp)">

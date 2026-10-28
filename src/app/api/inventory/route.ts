@@ -19,8 +19,16 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const gate = await authorize("inventory", "update");
   if (!gate.ok) return gate.response;
+  const body = await request.json().catch(() => null);
+  const opname = body && typeof body === "object" && !Array.isArray(body) && "countedQty" in body;
+  if (opname) {
+    const { parseOpname } = await import("@/lib/crud-parse");
+    const parsed = parseOpname(body);
+    if (!parsed.ok) return Response.json({ message: parsed.message }, { status: 400 });
+    return Response.json({ ok: true, role: gate.role });
+  }
   const { parseTransfer } = await import("@/lib/crud-parse");
-  const parsed = parseTransfer(await request.json().catch(() => null));
+  const parsed = parseTransfer(body);
   if (!parsed.ok) return Response.json({ message: parsed.message }, { status: 400 });
   return Response.json({ ok: true, role: gate.role });
 }

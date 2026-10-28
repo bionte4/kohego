@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Field, TextArea, TextInput } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
-import { SPECIES_LABEL, SPECIES_ORDER, type AnimalDraft, type AnimalGender, type HealthStatus, type LivestockBook, type LivestockSpecies } from "@/lib/livestock";
+import { SPECIES_LABEL, SPECIES_ORDER, type Animal, type AnimalDraft, type AnimalGender, type HealthStatus, type LivestockBook, type LivestockSpecies } from "@/lib/livestock";
 
 const empty = {
   earTag: "",
@@ -20,18 +20,35 @@ const empty = {
   note: "",
 };
 
+function fromAnimal(animal: Animal) {
+  return {
+    earTag: animal.earTag,
+    species: animal.species,
+    breed: animal.breed,
+    gender: animal.gender,
+    birthDate: animal.birthDate,
+    penId: animal.penId,
+    weight: String(animal.weightKg),
+    headcount: String(animal.headcount),
+    health: animal.health,
+    note: animal.note,
+  };
+}
+
 export function AnimalForm({
   book,
   open,
+  animal,
   onClose,
   onSave,
 }: {
   book: LivestockBook;
   open: boolean;
+  animal?: Animal | null;
   onClose: () => void;
   onSave: (draft: AnimalDraft) => Promise<string | null>;
 }) {
-  const [draft, setDraft] = useState(empty);
+  const [draft, setDraft] = useState(animal ? fromAnimal(animal) : empty);
   const [error, setError] = useState<string | null>(null);
   const pens = book.pens.filter((pen) => pen.species === draft.species);
   const penId = pens.some((pen) => pen.id === draft.penId) ? draft.penId : (pens[0]?.id ?? "");
@@ -63,7 +80,7 @@ export function AnimalForm({
   return (
     <Modal
       open={open}
-      title="Ternak baru"
+      title={animal ? `Ubah ${animal.earTag}` : "Ternak baru"}
       onClose={() => {
         setError(null);
         onClose();

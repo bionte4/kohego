@@ -1,15 +1,11 @@
 export type ProductFamilyId = "kambing" | "sapi" | "ayam" | "poc";
 
-export type VariantId =
-  | "kambing-5"
-  | "kambing-10"
-  | "kambing-25"
-  | "sapi-10"
-  | "sapi-25"
-  | "ayam-5"
-  | "ayam-10"
-  | "poc-1"
-  | "poc-5";
+/** Catalog id. Seed SKUs keep their historical ids. New variants get a generated id. */
+export type VariantId = string;
+
+export const PACKAGE_SIZES = ["5kg", "10kg", "25kg", "curah", "liter"] as const;
+
+export type PackageSize = (typeof PACKAGE_SIZES)[number];
 
 export type PackageUnit = "sak" | "jerigen";
 
@@ -25,6 +21,7 @@ export interface Product {
   /** Volume of one package. Dry goods stay at zero. */
   volumeL: number;
   unit: PackageUnit;
+  packageSize: PackageSize;
   /** Current list price. Orders snapshot this so later price edits do not rewrite history. */
   priceIdr: number;
   sku: string;
@@ -45,6 +42,8 @@ export interface Partner {
   creditTermsDays: number;
   /** Maximum unpaid consignment in rupiah. Ignored when tenor is zero. */
   creditLimitIdr: number;
+  /** Field pin for the shop. Null until someone records coordinates. */
+  geo: GeoTag | null;
 }
 
 export type PaymentMethod = "tunai" | "transfer" | "konsinyasi";
@@ -83,6 +82,12 @@ export interface Warehouse {
   name: string;
   city: string;
   kind: "gudang" | "agen";
+  /** Street or village used as the origin location. */
+  location: string;
+  /** Maximum on-hand packages across every variant. */
+  capacity: number;
+  /** Person in charge of the site. */
+  pic: string;
 }
 
 export interface StockLine {
@@ -116,10 +121,12 @@ export interface AgentProfile {
 }
 
 export interface AppData {
-  version: 2;
+  version: 3;
   partners: Partner[];
   orders: Order[];
   warehouses: Warehouse[];
+  /** Live packaging catalog. Orders keep the price and weight copied onto each line. */
+  products: Product[];
   stock: StockLine[];
   movements: Movement[];
   profile: AgentProfile;
@@ -161,6 +168,31 @@ export interface PartnerDraft {
   region: string;
   creditTermsDays: number;
   creditLimitIdr: number;
+  geo: GeoTag | null;
+}
+
+export interface WarehouseDraft {
+  name: string;
+  location: string;
+  capacity: number;
+  pic: string;
+  kind: "gudang" | "agen";
+}
+
+export interface ProductDraft {
+  label: string;
+  family: ProductFamilyId;
+  packageSize: PackageSize;
+  priceIdr: number;
+  /** Used when packageSize is liter. Ignored for dry sacks. */
+  volumeL: number;
+}
+
+export interface OpnameDraft {
+  warehouseId: string;
+  variant: VariantId;
+  /** Counted packages. The ledger stores the difference from on-hand. */
+  countedQty: number;
 }
 
 export type ActionResult =

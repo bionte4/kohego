@@ -112,7 +112,7 @@ function sumLiters(orders: Order[]) {
 }
 
 export function buildDashboard(
-  data: Pick<AppData, "partners" | "orders" | "warehouses" | "stock">,
+  data: Pick<AppData, "partners" | "orders" | "warehouses" | "stock" | "products">,
   now = new Date(),
 ): DashboardMetrics {
   const orders = [...data.orders].sort(
@@ -173,8 +173,9 @@ export function buildDashboard(
     });
   }
 
+  const catalog = data.products.length > 0 ? data.products : PRODUCTS;
   const mixTotals = FAMILIES.map((family) => {
-    const ids = new Set(productsByFamily(family.id).map((product) => product.id));
+    const ids = new Set(productsByFamily(family.id, catalog).map((product) => product.id));
     const lines = orders.flatMap((order) => order.lines.filter((line) => ids.has(line.variant)));
     const revenue = lines.reduce((sum, line) => sum + line.qty * line.unitPriceIdr, 0);
     const kilograms = lines.reduce((sum, line) => sum + line.qty * line.weightKg, 0);
@@ -226,7 +227,7 @@ export function buildDashboard(
 
   const lowStock: LowStockItem[] = data.stock
     .filter((line) => {
-      const product = PRODUCTS.find((item) => item.id === line.variant);
+      const product = catalog.find((item) => item.id === line.variant);
       return product ? line.qty < lowStockLimit(product) : false;
     })
     .map((line) => ({

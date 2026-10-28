@@ -3,7 +3,11 @@
 import { AlertTriangle, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
-import { useCan } from "@/components/access/role-provider";
+import { useAuth, useCan } from "@/components/access/role-provider";
+import { FarmWidgets } from "@/components/dashboard/farm-widgets";
+import { PublisherWidget } from "@/components/dashboard/publisher-widget";
+import { RegionalPartners, SalesPerformance, SalesShortcut } from "@/components/dashboard/sales-widgets";
+import { WarehouseWidgets } from "@/components/dashboard/warehouse-widgets";
 import { useStoreState } from "@/components/providers/store-provider";
 import { ResetDemoButton } from "@/components/layout/reset-demo-button";
 import { KpiGrid } from "@/components/dashboard/kpi-grid";
@@ -19,6 +23,7 @@ import { buildDashboard } from "@/lib/metrics";
 
 export function DashboardView() {
   const store = useStoreState();
+  const { role } = useAuth();
   const canSettle = useCan("orders", "update");
   const metrics = useMemo(() => {
     if (!store.ready) return null;
@@ -28,18 +33,44 @@ export function DashboardView() {
     return <p className="text-sm text-slate-500">Menyiapkan data penjualan...</p>;
   }
   const topRevenue = metrics.topPartners[0]?.revenue ?? 1;
+  const showFarm = role === "FARM_MANAGER" || role === "SUPER_ADMIN";
+  const showWarehouse = role === "WAREHOUSE_ADMIN" || role === "SUPER_ADMIN";
+  const showSales = role === "FIELD_SALES" || role === "SUPER_ADMIN" || role === null;
+  const showPublisher = role === "SUPER_ADMIN";
+  const intro =
+    role === "FARM_MANAGER"
+      ? "Ringkasan kandang: populasi, kesehatan, kohe yang terkumpul, dan bobot hidup."
+      : role === "WAREHOUSE_ADMIN"
+        ? "Stok kemasan, batch konversi, dan pesanan yang belum lunas."
+        : role === "FIELD_SALES"
+          ? "Kinerja penjualan pada perangkat ini, plus mitra di wilayah kerja Anda."
+          : "Angka 30 hari dihitung dari pesanan di perangkat ini. Tonase hanya menghitung pupuk padat. Penagihan mencakup seluruh konsinyasi yang belum lunas.";
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-xl text-sm leading-6 text-slate-600">
-          Angka 30 hari dihitung dari pesanan di perangkat ini. Tonase hanya menghitung pupuk padat. Penagihan mencakup seluruh konsinyasi yang belum lunas.
-        </p>
-        <Link href="/penjualan" className={buttonClass("primary", "shrink-0")}>
-          <ClipboardList className="h-4 w-4" aria-hidden />
-          Catat pesanan
-        </Link>
+        <p className="max-w-xl text-sm leading-6 text-slate-600">{intro}</p>
+        {showSales && role !== "FIELD_SALES" ? (
+          <Link href="/penjualan" className={buttonClass("primary", "shrink-0")}>
+            <ClipboardList className="h-4 w-4" aria-hidden />
+            Catat pesanan
+          </Link>
+        ) : null}
       </div>
+
+      {showFarm ? <FarmWidgets /> : null}
+      {showWarehouse ? <WarehouseWidgets metrics={metrics} /> : null}
+      {role === "FIELD_SALES" ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <SalesShortcut />
+          <RegionalPartners metrics={metrics} />
+        </div>
+      ) : null}
+      {role === "FIELD_SALES" ? <SalesPerformance metrics={metrics} /> : null}
+      {showPublisher ? <PublisherWidget /> : null}
+
+      {showSales && role !== "FIELD_SALES" ? (
+        <>
 
       <KpiGrid metrics={metrics} />
 
@@ -127,7 +158,7 @@ export function DashboardView() {
               ) : (
                 <ul className="space-y-2">
                   {metrics.lowStock.map((item) => {
-                    const product = productById(item.variant);
+                    const product = productById(item.variant, store.products);
                     return (
                       <li key={`${item.warehouseId}-${item.variant}`}>
                         <Link
@@ -177,6 +208,8 @@ export function DashboardView() {
       <div className="md:hidden">
         <ResetDemoButton className="text-earth-800" />
       </div>
+        </>
+      ) : null}
     </div>
   );
 }

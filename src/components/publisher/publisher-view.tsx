@@ -6,7 +6,6 @@ import { MediaPicker } from "@/components/publisher/media-picker";
 import { PlatformPreviews } from "@/components/publisher/platform-previews";
 import { PublishQueue } from "@/components/publisher/publish-queue";
 import { useStoreState } from "@/components/providers/store-provider";
-import { PRODUCTS } from "@/lib/catalog";
 import { formatWeight } from "@/lib/format";
 import { packageUnitLabel } from "@/lib/labels";
 import { HEALTH_LABEL, SPECIES_LABEL, liveWeightKg, type Animal } from "@/lib/livestock";
@@ -72,7 +71,7 @@ export function PublisherView() {
 
   const subjects = useMemo(() => {
     if (!sales.ready) return [];
-    const products: CaptionSubject[] = PRODUCTS.map((product) => ({
+    const products: CaptionSubject[] = sales.products.map((product) => ({
       key: `produk:${product.id}`,
       kind: "produk",
       refId: product.id,

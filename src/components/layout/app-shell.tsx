@@ -4,9 +4,10 @@ import { ChevronDown, ChevronRight, PanelLeft, Sprout } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
+import { useRole } from "@/components/access/role-provider";
 import { RoleSwitcher } from "@/components/access/role-switcher";
 import { ResetDemoButton } from "@/components/layout/reset-demo-button";
-import { MOBILE_NAV, MODULE_NAV, NAV_GROUPS, NAV_ITEMS, isActive, type NavGroupId } from "@/components/layout/nav";
+import { mobileNav, moduleNav, NAV_GROUPS, NAV_ITEMS, navItemsFor, isActive, type NavGroupId } from "@/components/layout/nav";
 import { formatLongDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ function emptyDateLabel() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const role = useRole();
+  const links = navItemsFor(role);
   const current = NAV_ITEMS.find((item) => isActive(pathname, item.href)) ?? NAV_ITEMS[0];
   const today = useSyncExternalStore(subscribeToNothing, todayLabel, emptyDateLabel);
   const [collapsed, setCollapsed] = useState(false);
@@ -66,7 +69,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex-1 space-y-2 overflow-y-auto px-3" aria-label="Utama">
           {NAV_GROUPS.map((group) => {
-            const items = NAV_ITEMS.filter((item) => item.group === group.id);
+            const items = links.filter((item) => item.group === group.id);
+            if (items.length === 0) return null;
             const open = collapsed || !closedGroups.includes(group.id);
             return (
               <div key={group.id}>
@@ -171,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <RoleSwitcher />
           </div>
           <div className="flex gap-2 overflow-x-auto px-4 pb-3 md:hidden">
-            {MODULE_NAV.map((item) => {
+            {moduleNav(role).map((item) => {
               const Icon = item.icon;
               const active = isActive(pathname, item.href);
               return (
@@ -204,8 +208,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Utama"
       >
-        <ul className="grid grid-cols-4">
-          {MOBILE_NAV.map((item) => {
+        <ul className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav(role).length || 1}, minmax(0, 1fr))` }}>
+          {mobileNav(role).map((item) => {
             const Icon = item.icon;
             const active = isActive(pathname, item.href);
             return (

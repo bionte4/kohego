@@ -3,12 +3,13 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useCan } from "@/components/access/role-provider";
+import { useStoreState } from "@/components/providers/store-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Field, TextArea, TextInput } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
-import { productsByFamily, productById } from "@/lib/catalog";
+import { PRODUCTS, productsByFamily, productById } from "@/lib/catalog";
 import { formatDate, formatWeight } from "@/lib/format";
 import { FAMILY_LABEL, packageUnitLabel } from "@/lib/labels";
 import {
@@ -24,7 +25,7 @@ import {
   type WasteDraft,
   type WasteOutput,
 } from "@/lib/livestock";
-import type { VariantId } from "@/lib/types";
+import type { Product, VariantId } from "@/lib/types";
 
 export function WastePanel({
   book,
@@ -39,6 +40,8 @@ export function WastePanel({
 }) {
   const canRecord = useCan("livestock", "create");
   const canPack = useCan("production", "create");
+  const sales = useStoreState();
+  const catalog = sales.ready ? sales.products : PRODUCTS;
   const [animalId, setAnimalId] = useState(book.animals[0]?.id ?? "");
   const [mass, setMass] = useState("");
   const [note, setNote] = useState("");
@@ -68,7 +71,7 @@ export function WastePanel({
           const family = SPECIES_PRODUCT_FAMILY[species];
           const available = availableWasteKg(book.waste, species);
           const expected = expectedDailyManureKg(book.animals, species);
-          const products = family ? productsByFamily(family) : [];
+          const products = family ? productsByFamily(family, catalog) : [];
           return (
             <article key={species} className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-sm text-slate-500">Kohe {SPECIES_LABEL[species]}</p>
@@ -157,7 +160,7 @@ export function WastePanel({
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge tone={row.status === "tersedia" ? "earth" : "forest"}>{WASTE_STATUS_LABEL[row.status]}</Badge>
-                  {canPack && row.status === "tersedia" && conversionVariants(row.species).some((variant) => maxPackages(row.massKg, row.species, variant) >= 1) ? (
+                  {canPack && row.status === "tersedia" && conversionVariants(row.species, catalog).some((variant) => maxPackages(row.massKg, row.species, variant, catalog) >= 1) ? (
                     <Button variant="secondary" onClick={() => setPacking(row)}>
                       Ke kemasan
                     </Button>
@@ -171,6 +174,7 @@ export function WastePanel({
       <PackDialog
         row={packing}
         warehouses={warehouses}
+        catalog={catalog}
         onClose={() => setPacking(null)}
         onPack={async (variant, qty, warehouseId) => {
           if (!packing) return "Catatan kohe tidak ditemukan.";
@@ -187,17 +191,19 @@ export function WastePanel({
 function PackDialog({
   row,
   warehouses,
+  catalog,
   onClose,
   onPack,
 }: {
   row: WasteOutput | null;
   warehouses: { id: string; name: string }[];
+  catalog: Product[];
   onClose: () => void;
   onPack: (variant: VariantId, qty: number, warehouseId: string) => Promise<string | null>;
 }) {
   return (
     <Modal open={row !== null} title="Ke kemasan" onClose={onClose}>
-      {row ? <PackForm key={row.id + String(row.massKg)} row={row} warehouses={warehouses} onPack={onPack} /> : null}
+      {row ? <PackForm key={row.id + String(row.massKg)} row={row} warehouses={warehouses} catalog={catalog} onPack={onPack} /> : null}
     </Modal>
   );
 }
@@ -205,19 +211,21 @@ function PackDialog({
 function PackForm({
   row,
   warehouses,
+  catalog,
   onPack,
 }: {
   row: WasteOutput;
   warehouses: { id: string; name: string }[];
+  catalog: Product[];
   onPack: (variant: VariantId, qty: number, warehouseId: string) => Promise<string | null>;
 }) {
-  const variants = conversionVariants(row.species).filter((variant) => maxPackages(row.massKg, row.species, variant) >= 1);
+  const variants = conversionVariants(row.species, catalog).filter((item) => maxPackages(row.massKg, row.species, item, catalog) >= 1);
   const [variant, setVariant] = useState<VariantId>(variants[0]);
-  const cap = maxPackages(row.massKg, row.species, variant);
+  const cap = maxPackages(row.massKg, row.species, variant, catalog);
   const [qty, setQty] = useState(String(Math.max(cap, 1)));
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
-  const product = productById(variant);
+  const product = productById(variant, catalog);
 
   return (
     <form
@@ -237,13 +245,13 @@ function PackForm({
           onChange={(event) => {
             const next = event.target.value as VariantId;
             setVariant(next);
-            setQty(String(Math.max(maxPackages(row.massKg, row.species, next), 1)));
+            setQty(String(Math.max(maxPackages(row.massKg, row.species, next, catalog), 1)));
           }}
           className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base"
         >
           {variants.map((id) => (
             <option key={id} value={id}>
-              {productById(id).label}
+              {productById(id, catalog).label}
             </option>
           ))}
         </select>

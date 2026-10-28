@@ -7,7 +7,9 @@ Matriksnya ada di `src/lib/rbac.ts`. Tulisan di bawah ini yang berlaku untuk ant
 | Sumber daya | Super admin | Manajer kandang | Penjualan lapangan | Admin gudang |
 | --- | --- | --- | --- | --- |
 | Ternak dan kohe | ubah | ubah | baca | baca |
-| Inventori | ubah | baca | baca | ubah |
+| Gudang asal | ubah | ubah | baca | baca |
+| Inventori dan opname | ubah | baca | baca | ubah |
+| Kemasan | ubah | baca | baca | ubah |
 | Pesanan | ubah | baca | ubah | baca |
 | Mitra | ubah | baca | ubah | baca |
 | Produksi | ubah | baca | baca | ubah |
@@ -31,7 +33,9 @@ Semua route di bawah memeriksa peran sebelum menerima badan permintaan.
 | --- | --- | --- |
 | GET, POST, PATCH, DELETE | `/api/orders` | Pesanan |
 | GET, POST, PATCH, DELETE | `/api/partners` | Mitra |
-| GET, POST, PATCH, DELETE | `/api/inventory` | Stok masuk, kirim, dan koreksi |
+| GET, POST, PATCH, DELETE | `/api/inventory` | Stok masuk, kirim, koreksi, dan opname |
+| GET, POST, PATCH, DELETE | `/api/sites` | Gudang asal |
+| GET, POST, PATCH, DELETE | `/api/catalog` | Kemasan dan varian |
 | GET, POST, PATCH, DELETE | `/api/livestock` | Ternak dan catatan kohe |
 | GET, POST, PATCH, DELETE | `/api/users` | Staf |
 | POST | `/api/access` | Pemeriksaan umum `{ resource, action }` |

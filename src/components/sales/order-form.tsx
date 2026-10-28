@@ -17,13 +17,13 @@ import type { GeoTag, PaymentMethod, ProductFamilyId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function OrderForm() {
-  const { partners, warehouses, stock, orders, placeOrder } = useStore();
+  const { partners, warehouses, stock, orders, placeOrder, products } = useStore();
   const [partnerId, setPartnerId] = useState("");
   const [picking, setPicking] = useState(true);
   const [query, setQuery] = useState("");
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? "");
   const [family, setFamily] = useState<ProductFamilyId>("kambing");
-  const [qty, setQty] = useState(emptyQuantities);
+  const [qty, setQty] = useState(() => emptyQuantities(products));
   const [address, setAddress] = useState("");
   const [payment, setPayment] = useState<PaymentMethod>("tunai");
   const [note, setNote] = useState("");
@@ -41,9 +41,9 @@ export function OrderForm() {
     );
   }, [partners, query]);
 
-  const sized = productsByFamily(family);
-  const active = FAMILIES.flatMap((item) => productsByFamily(item.id))
-    .map((product) => ({ product, qty: qty[product.id] }))
+  const sized = productsByFamily(family, products);
+  const active = FAMILIES.flatMap((item) => productsByFamily(item.id, products))
+    .map((product) => ({ product, qty: qty[product.id] ?? 0 }))
     .filter((line) => line.qty > 0);
   const total = active.reduce((sum, line) => sum + line.qty * line.product.priceIdr, 0);
   const kilograms = active.reduce((sum, line) => sum + line.qty * line.product.weightKg, 0);
@@ -92,9 +92,9 @@ export function OrderForm() {
     const result = await placeOrder({
       partnerId,
       warehouseId,
-      lines: FAMILIES.flatMap((item) => productsByFamily(item.id)).map((product) => ({
+      lines: FAMILIES.flatMap((item) => productsByFamily(item.id, products)).map((product) => ({
         variant: product.id,
-        qty: qty[product.id],
+        qty: qty[product.id] ?? 0,
       })),
       deliveryAddress: address,
       payment,
@@ -106,7 +106,7 @@ export function OrderForm() {
       return;
     }
     setError(null);
-    setQty(emptyQuantities());
+    setQty(emptyQuantities(products));
     setNote("");
     setGeo(null);
     setGeoState("idle");
@@ -187,7 +187,7 @@ export function OrderForm() {
             onChange={setFamily}
             columns="grid-cols-2"
             options={FAMILIES.map((item) => {
-              const count = productsByFamily(item.id).reduce((sum, product) => sum + qty[product.id], 0);
+              const count = productsByFamily(item.id, products).reduce((sum, product) => sum + (qty[product.id] ?? 0), 0);
               return {
                 value: item.id,
                 label: item.label,
@@ -201,7 +201,7 @@ export function OrderForm() {
             <ul className="space-y-3">
               {sized.map((product) => {
                 const onHand = stockQty(stock, warehouseId, product.id);
-                const selectedQty = qty[product.id];
+                const selectedQty = qty[product.id] ?? 0;
                 const over = selectedQty > onHand;
                 const unit = packageUnitLabel(product.unit);
                 return (

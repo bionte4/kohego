@@ -1,4 +1,4 @@
-import { productById, snapshotLine } from "@/lib/catalog";
+import { PRODUCTS, productById, snapshotLine } from "@/lib/catalog";
 import { nextOrderCode } from "@/lib/order-math";
 import type {
   AppData,
@@ -16,7 +16,7 @@ import type {
  * On-hand stock is a current snapshot. Historical orders are not replayed
  * onto that snapshot. Movement rows are a recent activity log only.
  */
-const partners: Partner[] = [
+const partners: Omit<Partner, "geo">[] = [
   {
     id: "p-subur",
     name: "Toko Tani Subur Makmur",
@@ -128,9 +128,33 @@ const partners: Partner[] = [
 ];
 
 const warehouses: Warehouse[] = [
-  { id: "w-pusat", name: "Gudang Pusat Lembang", city: "Lembang", kind: "gudang" },
-  { id: "w-garut", name: "Agen Garut", city: "Garut", kind: "agen" },
-  { id: "w-boyolali", name: "Agen Boyolali", city: "Boyolali", kind: "agen" },
+  {
+    id: "w-pusat",
+    name: "Gudang Pusat Lembang",
+    city: "Lembang",
+    kind: "gudang",
+    location: "Jl. Raya Lembang No. 88",
+    capacity: 2500,
+    pic: "Bambang Wijaya",
+  },
+  {
+    id: "w-garut",
+    name: "Agen Garut",
+    city: "Garut",
+    kind: "agen",
+    location: "Kp. Cikajang, Garut",
+    capacity: 800,
+    pic: "Dewi Lestari",
+  },
+  {
+    id: "w-boyolali",
+    name: "Agen Boyolali",
+    city: "Boyolali",
+    kind: "agen",
+    location: "Jl. Merapi, Boyolali",
+    capacity: 800,
+    pic: "Agus Salim",
+  },
 ];
 
 function mulberry32(seed: number) {
@@ -151,13 +175,13 @@ function atDay(now: Date, daysAgo: number, hour: number, minute: number) {
   return date;
 }
 
-function warehouseIdFor(partner: Partner) {
+function warehouseIdFor(partner: Omit<Partner, "geo">) {
   if (partner.region === "Jawa Tengah" || partner.region === "DI Yogyakarta") return "w-boyolali";
   if (partner.city === "Garut") return "w-garut";
   return "w-pusat";
 }
 
-function paymentFor(partner: Partner, rand: () => number): PaymentMethod {
+function paymentFor(partner: Omit<Partner, "geo">, rand: () => number): PaymentMethod {
   if (partner.creditTermsDays <= 0) return rand() > 0.35 ? "tunai" : "transfer";
   const roll = rand();
   if (roll < 0.4) return "tunai";
@@ -179,7 +203,7 @@ function qtyFor(variant: VariantId, rand: () => number) {
   return 1 + Math.floor(rand() * 8);
 }
 
-function buildLines(partner: Partner, rand: () => number): OrderLine[] {
+function buildLines(partner: Omit<Partner, "geo">, rand: () => number): OrderLine[] {
   const pool = ASSORTMENT[partner.type];
   const first = pool[Math.floor(rand() * pool.length)] ?? "kambing-10";
   const lines = [snapshotLine(first, qtyFor(first, rand))];
@@ -193,7 +217,7 @@ function buildLines(partner: Partner, rand: () => number): OrderLine[] {
 
 function pushOrder(
   orders: Order[],
-  partner: Partner,
+  partner: Omit<Partner, "geo">,
   createdAt: Date,
   payment: PaymentMethod,
   settled: boolean,
@@ -347,15 +371,16 @@ export function createSeed(now = new Date()): AppData {
   movements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return {
-    version: 2,
+    version: 3,
     profile: {
       name: "Rina Kartika",
       phone: "0812-4401-7788",
       role: "Agen penjualan lapangan",
       territory: "Jawa Barat & Jawa Tengah",
     },
-    partners: partners.map((partner) => ({ ...partner })),
+    partners: partners.map((partner) => ({ ...partner, geo: null })),
     warehouses: warehouses.map((warehouse) => ({ ...warehouse })),
+    products: PRODUCTS.map((product) => ({ ...product })),
     orders,
     movements,
     stock: [

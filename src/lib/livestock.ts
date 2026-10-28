@@ -1,5 +1,5 @@
 import { PRODUCTS } from "@/lib/catalog";
-import type { ProductFamilyId, VariantId } from "@/lib/types";
+import type { Product, ProductFamilyId, VariantId } from "@/lib/types";
 
 export type LivestockSpecies = "sapi" | "kambing" | "ayam" | "bebek";
 
@@ -94,6 +94,13 @@ export interface WasteDraft {
   animalId: string;
   massKg: number;
   note: string;
+}
+
+export interface PenDraft {
+  name: string;
+  species: LivestockSpecies;
+  location: string;
+  capacity: number;
 }
 
 export type LivestockResult =
@@ -256,6 +263,22 @@ function wasteRow(
   return { id, animalId, penId, species, massKg, collectedAt, status, note };
 }
 
+export function addPen(book: LivestockBook, draft: PenDraft, id: string): LivestockResult {
+  const name = draft.name.trim();
+  const location = draft.location.trim();
+  if (name.length < 2 || name.length > 60) return { ok: false, message: "Isi nama kandang, 2–60 karakter." };
+  if (location.length < 2 || location.length > 80) return { ok: false, message: "Isi lokasi kandang." };
+  if (!SPECIES_ORDER.includes(draft.species)) return { ok: false, message: "Jenis ternak tidak dikenal." };
+  if (!Number.isInteger(draft.capacity) || draft.capacity < 1 || draft.capacity > 100_000) {
+    return { ok: false, message: "Kapasitas harus bilangan ekor antara 1 dan 100.000." };
+  }
+  if (book.pens.some((pen) => pen.name.toLowerCase() === name.toLowerCase())) {
+    return { ok: false, message: "Nama kandang sudah terpakai." };
+  }
+  const pen: Pen = { id, name, species: draft.species, location, capacity: draft.capacity };
+  return { ok: true, id, book: { ...book, pens: [...book.pens, pen] } };
+}
+
 export function addAnimal(book: LivestockBook, draft: AnimalDraft, id: string, nowIso: string): LivestockResult {
   const earTag = draft.earTag.trim().toUpperCase();
   if (earTag.length < 3 || earTag.length > 16) {
@@ -308,6 +331,57 @@ export function addAnimal(book: LivestockBook, draft: AnimalDraft, id: string, n
     updatedAt: nowIso,
   };
   return { ok: true, id, book: { ...book, animals: [next, ...book.animals] } };
+}
+
+export function replaceAnimal(book: LivestockBook, animalId: string, draft: AnimalDraft, nowIso: string): LivestockResult {
+  const current = book.animals.find((item) => item.id === animalId);
+  if (!current) return { ok: false, message: "Ternak tidak ditemukan." };
+  const earTag = draft.earTag.trim().toUpperCase();
+  if (earTag.length < 3 || earTag.length > 16) return { ok: false, message: "Nomor telinga 3–16 karakter." };
+  if (book.animals.some((item) => item.id !== current.id && item.earTag.toUpperCase() === earTag)) {
+    return { ok: false, message: "Nomor telinga sudah terpakai." };
+  }
+  const breed = draft.breed.trim();
+  if (breed.length < 2 || breed.length > 40) return { ok: false, message: "Isi ras, 2–40 karakter." };
+  if (!isBirthDate(draft.birthDate, nowIso)) return { ok: false, message: "Tanggal lahir tidak valid." };
+  const pen = book.pens.find((item) => item.id === draft.penId);
+  if (!pen || pen.species !== draft.species) return { ok: false, message: "Pilih kandang yang sesuai jenis ternak." };
+  if (!Number.isFinite(draft.weightKg) || draft.weightKg <= 0 || draft.weightKg > 1500) {
+    return { ok: false, message: "Bobot harus di atas 0 dan paling besar 1.500 kg." };
+  }
+  const flock = draft.species === "ayam" || draft.species === "bebek";
+  if (!flock && draft.headcount !== 1) {
+    return { ok: false, message: "Sapi dan kambing dicatat per ekor, satu nomor telinga." };
+  }
+  if (!Number.isInteger(draft.headcount) || draft.headcount < 1 || draft.headcount > 9999) {
+    return { ok: false, message: "Jumlah ekor harus bilangan 1–9999." };
+  }
+  const heads = book.animals
+    .filter((item) => item.id !== current.id && item.penId === pen.id && item.health !== "terjual")
+    .reduce((sum, item) => sum + item.headcount, 0);
+  const incoming = draft.health === "terjual" ? 0 : draft.headcount;
+  if (heads + incoming > pen.capacity) {
+    return { ok: false, message: `Kandang ini muat ${pen.capacity} ekor. Terisi ${heads}.` };
+  }
+  const next: Animal = {
+    ...current,
+    earTag,
+    species: draft.species,
+    breed,
+    gender: draft.gender,
+    birthDate: draft.birthDate,
+    penId: pen.id,
+    weightKg: Math.round(draft.weightKg * 10) / 10,
+    headcount: draft.headcount,
+    health: draft.health,
+    note: draft.note.trim().slice(0, 280),
+    updatedAt: nowIso,
+  };
+  return {
+    ok: true,
+    id: current.id,
+    book: { ...book, animals: book.animals.map((item) => (item.id === current.id ? next : item)) },
+  };
 }
 
 export function updateAnimal(
@@ -387,16 +461,16 @@ export function allocateWaste(book: LivestockBook, wasteId: string): LivestockRe
 
 export type PackPlan = { ok: true; freshKg: number } | { ok: false; message: string };
 
-export function conversionVariants(species: LivestockSpecies): VariantId[] {
+export function conversionVariants(species: LivestockSpecies, products: Product[] = PRODUCTS): VariantId[] {
   const family = SPECIES_PRODUCT_FAMILY[species];
-  const solids = family ? PRODUCTS.filter((product) => product.family === family) : [];
-  const poc = PRODUCTS.filter((product) => product.family === "poc");
+  const solids = family ? products.filter((product) => product.family === family) : [];
+  const poc = products.filter((product) => product.family === "poc");
   return [...solids, ...poc].map((product) => product.id);
 }
 
 /** Largest whole-package count this fresh lot can support for one SKU. */
-export function maxPackages(massKg: number, species: LivestockSpecies, variant: VariantId) {
-  const product = PRODUCTS.find((item) => item.id === variant);
+export function maxPackages(massKg: number, species: LivestockSpecies, variant: VariantId, products: Product[] = PRODUCTS) {
+  const product = products.find((item) => item.id === variant);
   if (!product) return 0;
   if (product.family === "poc") {
     if (product.volumeL <= 0) return 0;
@@ -412,8 +486,8 @@ export function maxPackages(massKg: number, species: LivestockSpecies, variant: 
  * Fresh kilograms consumed to pack `packages` of the SKU.
  * Solids divide packaged kilograms by the dry yield. POC divides liters by the ferment factor.
  */
-export function freshKgForPackages(packages: number, species: LivestockSpecies, variant: VariantId) {
-  const product = PRODUCTS.find((item) => item.id === variant);
+export function freshKgForPackages(packages: number, species: LivestockSpecies, variant: VariantId, products: Product[] = PRODUCTS) {
+  const product = products.find((item) => item.id === variant);
   if (!product || packages <= 0) return 0;
   if (product.family === "poc") return (packages * product.volumeL) / POC_LITERS_PER_FRESH_KG;
   const yieldRatio = DRY_PACK_YIELD[species];
@@ -421,22 +495,22 @@ export function freshKgForPackages(packages: number, species: LivestockSpecies, 
   return (packages * product.weightKg) / yieldRatio;
 }
 
-export function planWastePack(row: WasteOutput, variant: VariantId, packages: number): PackPlan {
+export function planWastePack(row: WasteOutput, variant: VariantId, packages: number, products: Product[] = PRODUCTS): PackPlan {
   if (row.status !== "tersedia") return { ok: false, message: "Kohe ini sudah masuk produksi." };
   if (!Number.isInteger(packages) || packages < 1) {
     return { ok: false, message: "Jumlah kemasan harus bilangan bulat minimal 1." };
   }
-  if (!conversionVariants(row.species).includes(variant)) {
+  if (!conversionVariants(row.species, products).includes(variant)) {
     return { ok: false, message: "SKU itu tidak dibuat dari kohe ini." };
   }
-  const cap = maxPackages(row.massKg, row.species, variant);
+  const cap = maxPackages(row.massKg, row.species, variant, products);
   if (packages > cap) {
     return {
       ok: false,
       message: cap < 1 ? "Massa segar belum cukup untuk satu kemasan." : `Cukup untuk ${cap} kemasan.`,
     };
   }
-  return { ok: true, freshKg: freshKgForPackages(packages, row.species, variant) };
+  return { ok: true, freshKg: freshKgForPackages(packages, row.species, variant, products) };
 }
 
 export function issueWaste(book: LivestockBook, wasteId: string, freshKg: number): LivestockResult {

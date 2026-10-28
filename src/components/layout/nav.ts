@@ -10,6 +10,7 @@ import {
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
+import type { Role } from "@/lib/rbac";
 
 export type NavGroupId = "operasi" | "distribusi" | "relasi" | "pemasaran" | "pengaturan";
 
@@ -27,6 +28,8 @@ export interface NavItem {
   icon: LucideIcon;
   group: NavGroupId;
   mobile: boolean;
+  /** Roles that see this link. Super admin always sees the full menu. */
+  roles: readonly Role[];
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -39,7 +42,7 @@ export const NAV_GROUPS: NavGroup[] = [
 
 export const NAV_ITEMS: NavItem[] = [
   {
-    href: "/",
+    href: "/dashboard",
     label: "Dasbor",
     shortLabel: "Dasbor",
     title: "Dasbor",
@@ -47,6 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: LayoutDashboard,
     group: "operasi",
     mobile: false,
+    roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"],
   },
   {
     href: "/penjualan",
@@ -57,6 +61,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ClipboardList,
     group: "operasi",
     mobile: true,
+    roles: ["FIELD_SALES"],
   },
   {
     href: "/inventori",
@@ -67,6 +72,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Warehouse,
     group: "distribusi",
     mobile: true,
+    roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"],
   },
   {
     href: "/mitra",
@@ -77,6 +83,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Users,
     group: "relasi",
     mobile: true,
+    roles: ["FIELD_SALES"],
   },
   {
     href: "/profil",
@@ -87,6 +94,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: CircleUser,
     group: "relasi",
     mobile: true,
+    roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"],
   },
   {
     href: "/kandang",
@@ -97,6 +105,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Home,
     group: "operasi",
     mobile: false,
+    roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN"],
   },
   {
     href: "/publisher",
@@ -107,6 +116,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Share2,
     group: "pemasaran",
     mobile: false,
+    roles: [],
   },
   {
     href: "/pemasaran/akun",
@@ -117,6 +127,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: KeyRound,
     group: "pemasaran",
     mobile: false,
+    roles: [],
   },
   {
     href: "/settings/users",
@@ -127,13 +138,28 @@ export const NAV_ITEMS: NavItem[] = [
     icon: UserCog,
     group: "pengaturan",
     mobile: false,
+    roles: [],
   },
 ];
+
+/** Super admin, and the first paint before a role is known, keep the full menu. */
+export function navItemsFor(role: Role | null) {
+  if (!role || role === "SUPER_ADMIN") return NAV_ITEMS;
+  return NAV_ITEMS.filter((item) => item.roles.includes(role));
+}
 
 export const MOBILE_NAV = NAV_ITEMS.filter((item) => item.mobile);
 
 /** Sidebar modules that stay off the field bottom bar. */
 export const MODULE_NAV = NAV_ITEMS.filter((item) => !item.mobile && item.href !== "/");
+
+export function mobileNav(role: Role | null) {
+  return navItemsFor(role).filter((item) => item.mobile);
+}
+
+export function moduleNav(role: Role | null) {
+  return navItemsFor(role).filter((item) => !item.mobile && item.href !== "/");
+}
 
 export function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";

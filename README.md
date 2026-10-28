@@ -39,9 +39,9 @@ Pengganti peran di header adalah sesi lokal untuk mencoba akses. Cookie `kohego_
 | Peran | Yang boleh diubah |
 | --- | --- |
 | Super admin | Semua, termasuk daftar pengguna |
-| Manajer kandang | Ternak dan kohe |
+| Manajer kandang | Ternak, kohe, dan gudang asal |
 | Penjualan lapangan | Pesanan dan mitra |
-| Admin gudang | Inventori dan produksi |
+| Admin gudang | Inventori, kemasan, opname, dan produksi |
 
 Peran lain tetap bisa membaca tabel. Rinciannya ada di [docs/peran.md](docs/peran.md).
 

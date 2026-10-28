@@ -2,7 +2,7 @@ export const ROLES = ["SUPER_ADMIN", "FARM_MANAGER", "FIELD_SALES", "WAREHOUSE_A
 
 export type Role = (typeof ROLES)[number];
 
-export const RESOURCES = ["livestock", "inventory", "orders", "partners", "production", "users"] as const;
+export const RESOURCES = ["livestock", "inventory", "orders", "partners", "production", "users", "sites", "catalog"] as const;
 
 export type Resource = (typeof RESOURCES)[number];
 
@@ -24,6 +24,8 @@ const RESOURCE_LABEL: Record<Resource, string> = {
   partners: "mitra",
   production: "produksi",
   users: "pengguna",
+  sites: "gudang asal",
+  catalog: "kemasan",
 };
 
 const ACTION_LABEL: Record<CrudAction, string> = {
@@ -38,8 +40,8 @@ const READ: readonly CrudAction[] = ["read"];
 
 /**
  * FIELD_SALES writes orders and partners.
- * FARM_MANAGER writes the herd and fresh kohe.
- * WAREHOUSE_ADMIN writes packaged stock and conversion batches.
+ * FARM_MANAGER writes the herd, fresh kohe, and origin warehouses.
+ * WAREHOUSE_ADMIN writes packaged stock, packaging variants, and conversion batches.
  * SUPER_ADMIN writes every resource.
  * Other roles may still read, so the dasbor and tables stay visible.
  */
@@ -51,6 +53,8 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     partners: ALL,
     production: ALL,
     users: ALL,
+    sites: ALL,
+    catalog: ALL,
   },
   FARM_MANAGER: {
     livestock: ALL,
@@ -59,6 +63,8 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     partners: READ,
     production: READ,
     users: READ,
+    sites: ALL,
+    catalog: READ,
   },
   FIELD_SALES: {
     livestock: READ,
@@ -67,6 +73,8 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     partners: ALL,
     production: READ,
     users: READ,
+    sites: READ,
+    catalog: READ,
   },
   WAREHOUSE_ADMIN: {
     livestock: READ,
@@ -75,6 +83,8 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     partners: READ,
     production: ALL,
     users: READ,
+    sites: READ,
+    catalog: ALL,
   },
 };
 

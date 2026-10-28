@@ -1,5 +1,5 @@
-import { productById } from "@/lib/catalog";
-import type { StockLine, VariantId } from "@/lib/types";
+import { PRODUCTS } from "@/lib/catalog";
+import type { Product, StockLine, VariantId } from "@/lib/types";
 
 export function stockQty(stock: StockLine[], warehouseId: string, variant: VariantId) {
   return stock.find((line) => line.warehouseId === warehouseId && line.variant === variant)?.qty ?? 0;
@@ -26,16 +26,22 @@ export function adjustStock(
   );
 }
 
-export function stockKilograms(stock: StockLine[], warehouseId?: string) {
+export function stockKilograms(stock: StockLine[], warehouseId?: string, products: Product[] = PRODUCTS) {
   return stock.reduce((sum, line) => {
     if (warehouseId && line.warehouseId !== warehouseId) return sum;
-    return sum + line.qty * productById(line.variant).weightKg;
+    const product = products.find((item) => item.id === line.variant);
+    return sum + line.qty * (product?.weightKg ?? 0);
   }, 0);
 }
 
-export function stockLiters(stock: StockLine[], warehouseId?: string) {
+export function stockLiters(stock: StockLine[], warehouseId?: string, products: Product[] = PRODUCTS) {
   return stock.reduce((sum, line) => {
     if (warehouseId && line.warehouseId !== warehouseId) return sum;
-    return sum + line.qty * productById(line.variant).volumeL;
+    const product = products.find((item) => item.id === line.variant);
+    return sum + line.qty * (product?.volumeL ?? 0);
   }, 0);
+}
+
+export function occupancy(stock: StockLine[], warehouseId: string) {
+  return stock.reduce((sum, line) => (line.warehouseId === warehouseId ? sum + line.qty : sum), 0);
 }

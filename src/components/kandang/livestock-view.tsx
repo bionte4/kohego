@@ -8,14 +8,17 @@ import { useStoreState } from "@/components/providers/store-provider";
 import { productById } from "@/lib/catalog";
 import {
   addAnimal,
+  addPen,
   issueWaste,
   planWastePack,
   availableWasteKg,
   recordWaste,
   removeAnimal,
+  replaceAnimal,
   updateAnimal,
   SPECIES_LABEL,
   type AnimalDraft,
+  type PenDraft,
   type HealthStatus,
   type LivestockSpecies,
   type WasteDraft,
@@ -51,12 +54,28 @@ export function LivestockView() {
     return saved ? null : "Perubahan tidak tersimpan. Penyimpanan browser penuh atau diblokir.";
   }
 
+  async function onAddPen(draft: PenDraft) {
+    const denied = await guard("livestock", "create", draft);
+    if (denied) return denied;
+    const current = getLivestockClient();
+    if (!current) return "Data kandang belum siap.";
+    return commit(addPen(current, draft, uid("pen")));
+  }
+
   async function onAdd(draft: AnimalDraft) {
     const denied = await guard("livestock", "create", draft);
     if (denied) return denied;
     const current = getLivestockClient();
     if (!current) return "Data kandang belum siap.";
     return commit(addAnimal(current, draft, uid("ani"), new Date().toISOString()));
+  }
+
+  async function onReplace(animalId: string, draft: AnimalDraft) {
+    const denied = await guard("livestock", "update", { id: animalId, ...draft });
+    if (denied) return denied;
+    const current = getLivestockClient();
+    if (!current) return "Data kandang belum siap.";
+    return commit(replaceAnimal(current, animalId, draft, new Date().toISOString()));
   }
 
   async function onUpdate(animalId: string, patch: { weightKg?: number; health?: HealthStatus }) {
@@ -95,12 +114,12 @@ export function LivestockView() {
     if (!current) return "Data kandang belum siap.";
     const row = current.waste.find((item) => item.id === wasteId);
     if (!row) return "Catatan kohe tidak ditemukan.";
-    const plan = planWastePack(row, variant, qty);
+    const plan = planWastePack(row, variant, qty, sales.products);
     if (!plan.ok) return plan.message;
     const issued = issueWaste(current, wasteId, plan.freshKg);
     if (!issued.ok) return issued.message;
     const source = current.animals.find((animal) => animal.id === row.animalId);
-    const product = productById(variant);
+    const product = productById(variant, sales.products);
     const receipt = await sales.receiveStock({
       warehouseId,
       variant,
@@ -130,9 +149,9 @@ export function LivestockView() {
     if (!current) return "Data kandang belum siap.";
     const id = uid("batch");
     const nowIso = new Date().toISOString();
-    const settled = settleProduction(current, { ...input, id, nowIso });
+    const settled = settleProduction(current, { ...input, id, nowIso, products: sales.products });
     if (!settled.ok) return settled.message;
-    const product = productById(input.variantId);
+    const product = productById(input.variantId, sales.products);
     const receipt = await sales.receiveStock({
       warehouseId: input.warehouseId,
       variant: input.variantId,
@@ -179,7 +198,9 @@ export function LivestockView() {
           Produksi & konversi
         </TabButton>
       </div>
-      {tab === "ternak" ? <HerdPanel book={data} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} /> : null}
+      {tab === "ternak" ? (
+        <HerdPanel book={data} onAdd={onAdd} onAddPen={onAddPen} onReplace={onReplace} onUpdate={onUpdate} onDelete={onDelete} />
+      ) : null}
       {tab === "bahan" ? (
         <WastePanel
           book={data}

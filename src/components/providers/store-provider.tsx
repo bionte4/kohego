@@ -3,27 +3,41 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   applyCancelOrder,
+  applyOpname,
   applyOrder,
   applyPartner,
+  applyProduct,
   applyProfile,
   applyReceipt,
   applyRemovePartner,
+  applyRemoveProduct,
+  applyRemoveWarehouse,
   applySettle,
   applyTransfer,
   applyUpdatePartner,
+  applyUpdateProduct,
+  applyUpdateWarehouse,
+  applyWarehouse,
   applyWriteOff,
   type MutationResult,
 } from "@/lib/mutations";
 import { createSeed } from "@/lib/seed";
 import { getClientSnapshot, getServerSnapshot, replaceState, subscribeStore } from "@/lib/storage";
 import { guard } from "@/lib/guard";
-import type { ActionResult, AgentProfile, AppData, OrderDraft, PartnerDraft, ReceiptDraft, TransferDraft, VariantId } from "@/lib/types";
+import type { ActionResult, AgentProfile, AppData, OpnameDraft, OrderDraft, PartnerDraft, ProductDraft, ReceiptDraft, TransferDraft, VariantId, WarehouseDraft } from "@/lib/types";
 
 interface StoreActions {
   placeOrder: (draft: OrderDraft) => Promise<ActionResult>;
   receiveStock: (draft: ReceiptDraft) => Promise<ActionResult>;
   transferStock: (draft: TransferDraft) => Promise<ActionResult>;
   writeOffStock: (draft: { warehouseId: string; variant: VariantId; qty: number }) => Promise<ActionResult>;
+  adjustOpname: (draft: OpnameDraft) => Promise<ActionResult>;
+  addWarehouse: (draft: WarehouseDraft) => Promise<ActionResult>;
+  updateWarehouse: (warehouseId: string, draft: WarehouseDraft) => Promise<ActionResult>;
+  removeWarehouse: (warehouseId: string) => Promise<ActionResult>;
+  addProduct: (draft: ProductDraft) => Promise<ActionResult>;
+  updateProduct: (productId: string, draft: ProductDraft) => Promise<ActionResult>;
+  removeProduct: (productId: string) => Promise<ActionResult>;
   addPartner: (draft: PartnerDraft) => Promise<ActionResult>;
   updatePartner: (partnerId: string, draft: PartnerDraft) => Promise<ActionResult>;
   removePartner: (partnerId: string) => Promise<ActionResult>;
@@ -131,6 +145,83 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commitResult, readyData],
   );
 
+  const adjustOpname = useCallback(
+    async (draft: OpnameDraft): Promise<ActionResult> => {
+      const denied = await guard("inventory", "update", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyOpname(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const addWarehouse = useCallback(
+    async (draft: WarehouseDraft): Promise<ActionResult> => {
+      const denied = await guard("sites", "create", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyWarehouse(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const updateWarehouse = useCallback(
+    async (warehouseId: string, draft: WarehouseDraft): Promise<ActionResult> => {
+      const denied = await guard("sites", "update", { id: warehouseId, ...draft });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyUpdateWarehouse(current, warehouseId, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const removeWarehouse = useCallback(
+    async (warehouseId: string): Promise<ActionResult> => {
+      const denied = await guard("sites", "delete", { id: warehouseId });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyRemoveWarehouse(current, warehouseId));
+    },
+    [commitResult, readyData],
+  );
+
+  const addProduct = useCallback(
+    async (draft: ProductDraft): Promise<ActionResult> => {
+      const denied = await guard("catalog", "create", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyProduct(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const updateProduct = useCallback(
+    async (productId: string, draft: ProductDraft): Promise<ActionResult> => {
+      const denied = await guard("catalog", "update", { id: productId, ...draft });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyUpdateProduct(current, productId, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const removeProduct = useCallback(
+    async (productId: string): Promise<ActionResult> => {
+      const denied = await guard("catalog", "delete", { id: productId });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyRemoveProduct(current, productId));
+    },
+    [commitResult, readyData],
+  );
+
   const addPartner = useCallback(
     async (draft: PartnerDraft): Promise<ActionResult> => {
       const denied = await guard("partners", "create", draft);
@@ -209,6 +300,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       receiveStock,
       transferStock,
       writeOffStock,
+      adjustOpname,
+      addWarehouse,
+      updateWarehouse,
+      removeWarehouse,
+      addProduct,
+      updateProduct,
+      removeProduct,
       addPartner,
       updatePartner,
       removePartner,
@@ -223,6 +321,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     receiveStock,
     transferStock,
     writeOffStock,
+    adjustOpname,
+    addWarehouse,
+    updateWarehouse,
+    removeWarehouse,
+    addProduct,
+    updateProduct,
+    removeProduct,
     addPartner,
     updatePartner,
     removePartner,

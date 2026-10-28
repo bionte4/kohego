@@ -1,4 +1,4 @@
-import type { MovementKind, PackageUnit, PartnerType, PaymentMethod, ProductFamilyId, Warehouse } from "@/lib/types";
+import type { MovementKind, PackageSize, PackageUnit, PartnerType, PaymentMethod, ProductFamilyId, Warehouse } from "@/lib/types";
 
 export const PARTNER_TYPE_LABEL: Record<PartnerType, string> = {
   toko_tani: "Toko Tani",
@@ -14,6 +14,14 @@ export const CHANNEL_LABEL = {
 export function partnerChannel(type: PartnerType) {
   return type === "urban" ? "b2c" : "b2b";
 }
+
+export const PACKAGE_SIZE_LABEL: Record<PackageSize, string> = {
+  "5kg": "5 kg",
+  "10kg": "10 kg",
+  "25kg": "25 kg",
+  curah: "Curah",
+  liter: "Liter",
+};
 
 export const FAMILY_LABEL: Record<ProductFamilyId, string> = {
   kambing: "Kohe Kambing",

@@ -10,7 +10,7 @@ import {
   type ProductionBatch,
   type WasteOutput,
 } from "@/lib/livestock";
-import type { VariantId } from "@/lib/types";
+import type { Product, VariantId } from "@/lib/types";
 
 export interface ProductionEstimate {
   rawKg: number;
@@ -29,16 +29,16 @@ export type ProductionResult =
   | { ok: true; book: LivestockBook; estimate: ProductionEstimate; batch: ProductionBatch }
   | { ok: false; message: string };
 
-export function packageMeasure(variantId: VariantId) {
-  const product = PRODUCTS.find((item) => item.id === variantId);
+export function packageMeasure(variantId: VariantId, products: Product[] = PRODUCTS) {
+  const product = products.find((item) => item.id === variantId);
   if (!product) return null;
   if (product.family === "poc") return { size: product.volumeL, unit: "L" as const, label: product.label, shortLabel: product.shortLabel, unitName: product.unit };
   return { size: product.weightKg, unit: "kg" as const, label: product.label, shortLabel: product.shortLabel, unitName: product.unit };
 }
 
 /** Starting rate for the form. Solids use the dry yield. POC uses liters of concentrate per fresh kilogram. */
-export function suggestedRate(species: LivestockSpecies, variantId: VariantId) {
-  const measure = packageMeasure(variantId);
+export function suggestedRate(species: LivestockSpecies, variantId: VariantId, products: Product[] = PRODUCTS) {
+  const measure = packageMeasure(variantId, products);
   if (measure?.unit === "L") return POC_LITERS_PER_FRESH_KG;
   return DRY_PACK_YIELD[species] || 0.35;
 }
@@ -86,12 +86,14 @@ export function settleProduction(
     variantId: VariantId;
     warehouseId: string;
     nowIso: string;
+    products?: Product[];
   },
 ): ProductionResult {
-  if (!conversionVariants(input.species).includes(input.variantId)) {
+  const products = input.products ?? PRODUCTS;
+  if (!conversionVariants(input.species, products).includes(input.variantId)) {
     return { ok: false, message: "SKU itu tidak dibuat dari kohe ini." };
   }
-  const measure = packageMeasure(input.variantId);
+  const measure = packageMeasure(input.variantId, products);
   if (!measure) return { ok: false, message: "Varian tidak dikenal." };
   const estimate = estimateProduction(input.rawKg, input.conversionRate, measure.size, measure.unit);
   if ("ok" in estimate) return estimate;

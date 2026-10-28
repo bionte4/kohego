@@ -5,6 +5,7 @@ import { AnimalForm } from "@/components/kandang/animal-form";
 import { useCan } from "@/components/access/role-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Field, TextInput } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { formatDate, formatWeight } from "@/lib/format";
@@ -19,6 +20,7 @@ import {
   type HealthStatus,
   type LivestockBook,
   type LivestockSpecies,
+  type PenDraft,
 } from "@/lib/livestock";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +34,15 @@ function healthTone(health: HealthStatus) {
 export function HerdPanel({
   book,
   onAdd,
+  onAddPen,
+  onReplace,
   onUpdate,
   onDelete,
 }: {
   book: LivestockBook;
   onAdd: (draft: AnimalDraft) => Promise<string | null>;
+  onAddPen: (draft: PenDraft) => Promise<string | null>;
+  onReplace: (animalId: string, draft: AnimalDraft) => Promise<string | null>;
   onUpdate: (animalId: string, patch: { weightKg?: number; health?: HealthStatus }) => Promise<string | null>;
   onDelete: (animalId: string) => Promise<string | null>;
 }) {
@@ -46,6 +52,8 @@ export function HerdPanel({
   const [species, setSpecies] = useState<LivestockSpecies | "all">("all");
   const [health, setHealth] = useState<HealthStatus | "all">("all");
   const [open, setOpen] = useState(false);
+  const [penOpen, setPenOpen] = useState(false);
+  const [revising, setRevising] = useState<Animal | null>(null);
   const [editing, setEditing] = useState<Animal | null>(null);
   const [removing, setRemoving] = useState<Animal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +92,11 @@ export function HerdPanel({
               ))}
             </select>
           </label>
+          {canCreate ? (
+            <Button variant="secondary" onClick={() => setPenOpen(true)}>
+              Kandang baru
+            </Button>
+          ) : null}
           {canCreate ? <Button onClick={() => setOpen(true)}>Ternak baru</Button> : null}
         </div>
       </div>
@@ -125,6 +138,11 @@ export function HerdPanel({
                   <td className="px-3 py-3">
                     <div className="flex flex-wrap gap-2">
                       {canUpdate ? (
+                        <Button variant="secondary" onClick={() => setRevising(animal)}>
+                          Ubah
+                        </Button>
+                      ) : null}
+                      {canUpdate ? (
                         <Button variant="secondary" onClick={() => setEditing(animal)}>
                           Bobot
                         </Button>
@@ -144,6 +162,26 @@ export function HerdPanel({
       </div>
       {visible.length === 0 ? <p className="text-sm text-slate-500">Belum ada ternak pada filter ini.</p> : null}
       <AnimalForm book={book} open={open} onClose={() => setOpen(false)} onSave={onAdd} />
+      <PenForm
+        open={penOpen}
+        onClose={() => setPenOpen(false)}
+        onSave={async (draft) => {
+          const message = await onAddPen(draft);
+          setError(message);
+          if (!message) setPenOpen(false);
+          return message;
+        }}
+      />
+      {revising ? (
+        <AnimalForm
+          key={revising.id}
+          book={book}
+          animal={revising}
+          open
+          onClose={() => setRevising(null)}
+          onSave={(draft) => onReplace(revising.id, draft)}
+        />
+      ) : null}
       <WeightDialog
         animal={editing}
         onClose={() => setEditing(null)}
@@ -244,6 +282,62 @@ function WeightForm({
       ) : null}
       <Button type="submit">Simpan bobot</Button>
     </form>
+  );
+}
+
+function PenForm({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (draft: PenDraft) => Promise<string | null>;
+}) {
+  const [name, setName] = useState("");
+  const [species, setSpecies] = useState<LivestockSpecies>("kambing");
+  const [location, setLocation] = useState("");
+  const [capacity, setCapacity] = useState("40");
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Modal open={open} title="Kandang baru" onClose={onClose}>
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void onSave({
+            name,
+            species,
+            location,
+            capacity: Number.parseInt(capacity, 10),
+          }).then((message) => setError(message));
+        }}
+      >
+        <Field label="Nama kandang">
+          <TextInput value={name} onChange={(event) => setName(event.target.value)} />
+        </Field>
+        <ChoiceGroup
+          label="Jenis ternak"
+          value={species}
+          onChange={setSpecies}
+          columns="grid-cols-2"
+          options={SPECIES_ORDER.map((item) => ({ value: item, label: SPECIES_LABEL[item] }))}
+        />
+        <Field label="Lokasi">
+          <TextInput value={location} onChange={(event) => setLocation(event.target.value)} />
+        </Field>
+        <Field label="Kapasitas (ekor)">
+          <TextInput
+            inputMode="numeric"
+            value={capacity}
+            onChange={(event) => setCapacity(event.target.value.replace(/[^\d]/g, ""))}
+          />
+        </Field>
+        {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+        <Button type="submit">Simpan kandang</Button>
+      </form>
+    </Modal>
   );
 }
 

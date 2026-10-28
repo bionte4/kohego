@@ -1,6 +1,5 @@
-import { PRODUCTS } from "@/lib/catalog";
-import { SPECIES_ORDER, type AnimalDraft, type AnimalGender, type HealthStatus, type LivestockSpecies } from "@/lib/livestock";
-import type { OrderDraft, PartnerDraft, PartnerType, PaymentMethod, ReceiptDraft, TransferDraft, VariantId } from "@/lib/types";
+import { SPECIES_ORDER, type AnimalDraft, type AnimalGender, type HealthStatus, type LivestockSpecies, type PenDraft } from "@/lib/livestock";
+import { PACKAGE_SIZES, type OpnameDraft, type OrderDraft, type PackageSize, type PartnerDraft, type PartnerType, type PaymentMethod, type ProductDraft, type ProductFamilyId, type ReceiptDraft, type TransferDraft, type VariantId, type WarehouseDraft } from "@/lib/types";
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; message: string };
 
@@ -14,8 +13,15 @@ function text(value: unknown) {
 }
 
 function variant(value: unknown): VariantId | null {
-  if (typeof value !== "string") return null;
-  return PRODUCTS.some((product) => product.id === value) ? (value as VariantId) : null;
+  const id = text(value);
+  if (!id || id.length > 80) return null;
+  return id;
+}
+
+function coordinate(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = typeof value === "number" ? value : Number(text(value));
+  return Number.isFinite(number) ? number : Number.NaN;
 }
 
 const PARTNER_TYPES: PartnerType[] = ["toko_tani", "perkebunan", "urban"];
@@ -35,6 +41,11 @@ export function parsePartnerDraft(body: unknown): Parsed<PartnerDraft> {
   if (!Number.isInteger(creditTermsDays) || !Number.isInteger(creditLimitIdr)) {
     return { ok: false, message: "Tenor dan plafon harus bilangan." };
   }
+  const point = record(data.geo);
+  const lat = coordinate(point ? point.lat : data.lat);
+  const lng = coordinate(point ? point.lng : data.lng);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return { ok: false, message: "Koordinat tidak valid." };
+  if ((lat === null) !== (lng === null)) return { ok: false, message: "Isi lintang dan bujur bersama-sama." };
   return {
     ok: true,
     value: {
@@ -47,6 +58,7 @@ export function parsePartnerDraft(body: unknown): Parsed<PartnerDraft> {
       region: text(data.region),
       creditTermsDays,
       creditLimitIdr,
+      geo: lat === null || lng === null ? null : { lat, lng, accuracyM: null },
     },
   };
 }
@@ -138,6 +150,26 @@ export function parseWriteOff(body: unknown): Parsed<{ warehouseId: string; vari
   return { ok: true, value: { warehouseId: text(data.warehouseId), variant: item, qty } };
 }
 
+export function parsePenDraft(body: unknown): Parsed<PenDraft> {
+  const data = record(body);
+  if (!data) return { ok: false, message: "Permintaan tidak valid." };
+  const species = data.species;
+  const capacity = Number(data.capacity);
+  if (typeof species !== "string" || !SPECIES_ORDER.includes(species as LivestockSpecies)) {
+    return { ok: false, message: "Jenis ternak tidak dikenal." };
+  }
+  if (!Number.isInteger(capacity)) return { ok: false, message: "Kapasitas harus bilangan." };
+  return {
+    ok: true,
+    value: {
+      name: text(data.name),
+      species: species as LivestockSpecies,
+      location: text(data.location),
+      capacity,
+    },
+  };
+}
+
 export function parseAnimalDraft(body: unknown): Parsed<AnimalDraft> {
   const data = record(body);
   if (!data) return { ok: false, message: "Permintaan tidak valid." };
@@ -193,4 +225,57 @@ export function parseAnimalPatch(body: unknown): Parsed<{ id: string; weightKg?:
     patch.health = health as HealthStatus;
   }
   return { ok: true, value: patch };
+}
+
+const PRODUCT_FAMILIES: ProductFamilyId[] = ["kambing", "sapi", "ayam", "poc"];
+
+export function parseWarehouseDraft(body: unknown): Parsed<WarehouseDraft> {
+  const data = record(body);
+  if (!data) return { ok: false, message: "Permintaan tidak valid." };
+  const kind = data.kind === "agen" ? "agen" : data.kind === "gudang" ? "gudang" : null;
+  const capacity = Number(data.capacity);
+  if (!kind) return { ok: false, message: "Jenis lokasi tidak dikenal." };
+  if (!Number.isInteger(capacity)) return { ok: false, message: "Kapasitas harus bilangan." };
+  return {
+    ok: true,
+    value: { name: text(data.name), location: text(data.location), capacity, pic: text(data.pic), kind },
+  };
+}
+
+export function parseProductDraft(body: unknown): Parsed<ProductDraft> {
+  const data = record(body);
+  if (!data) return { ok: false, message: "Permintaan tidak valid." };
+  const family = data.family;
+  const packageSize = data.packageSize;
+  const priceIdr = Number(data.priceIdr);
+  const volumeL = data.volumeL === undefined || data.volumeL === "" ? 1 : Number(data.volumeL);
+  if (typeof family !== "string" || !PRODUCT_FAMILIES.includes(family as ProductFamilyId)) {
+    return { ok: false, message: "Kategori tidak dikenal." };
+  }
+  if (typeof packageSize !== "string" || !(PACKAGE_SIZES as readonly string[]).includes(packageSize)) {
+    return { ok: false, message: "Ukuran kemasan tidak dikenal." };
+  }
+  if (!Number.isInteger(priceIdr) || !Number.isInteger(volumeL)) {
+    return { ok: false, message: "Harga dan volume harus bilangan." };
+  }
+  return {
+    ok: true,
+    value: {
+      label: text(data.label),
+      family: family as ProductFamilyId,
+      packageSize: packageSize as PackageSize,
+      priceIdr,
+      volumeL,
+    },
+  };
+}
+
+export function parseOpname(body: unknown): Parsed<OpnameDraft> {
+  const data = record(body);
+  if (!data) return { ok: false, message: "Permintaan tidak valid." };
+  const item = variant(data.variant);
+  const countedQty = Number(data.countedQty);
+  if (!item) return { ok: false, message: "Pilih varian produk." };
+  if (!Number.isInteger(countedQty)) return { ok: false, message: "Hasil hitung harus bilangan." };
+  return { ok: true, value: { warehouseId: text(data.warehouseId), variant: item, countedQty } };
 }
