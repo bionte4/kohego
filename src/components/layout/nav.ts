@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   CircleUser,
   ClipboardList,
   Home,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import type { Role } from "@/lib/rbac";
 
-export type NavGroupId = "operasi" | "distribusi" | "relasi" | "pemasaran" | "pengaturan";
+export type NavGroupId = "operasi" | "distribusi" | "laporan" | "relasi" | "pemasaran" | "pengaturan";
 
 export interface NavGroup {
   id: NavGroupId;
@@ -35,6 +36,7 @@ export interface NavItem {
 export const NAV_GROUPS: NavGroup[] = [
   { id: "operasi", label: "Operasi" },
   { id: "distribusi", label: "Distribusi" },
+  { id: "laporan", label: "Laporan" },
   { id: "relasi", label: "Relasi" },
   { id: "pemasaran", label: "Pemasaran" },
   { id: "pengaturan", label: "Pengaturan" },
@@ -53,7 +55,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"],
   },
   {
-    href: "/penjualan",
+    href: "/orders/fast",
     label: "Pesanan cepat",
     shortLabel: "Pesanan",
     title: "Pesanan Cepat",
@@ -72,6 +74,17 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Warehouse,
     group: "distribusi",
     mobile: true,
+    roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"],
+  },
+  {
+    href: "/reports/financial",
+    label: "Laporan keuangan",
+    shortLabel: "Laporan",
+    title: "Laporan Keuangan",
+    subtitle: "Pendapatan, tonase, dan piutang konsinyasi",
+    icon: BarChart3,
+    group: "laporan",
+    mobile: false,
     roles: ["FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"],
   },
   {

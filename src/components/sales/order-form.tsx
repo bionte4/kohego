@@ -16,7 +16,7 @@ import { stockQty } from "@/lib/stock";
 import type { GeoTag, PaymentMethod, ProductFamilyId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function OrderForm() {
+export function OrderForm({ onCreated }: { onCreated?: (orderId: string) => void }) {
   const { partners, warehouses, stock, orders, placeOrder, products } = useStore();
   const [partnerId, setPartnerId] = useState("");
   const [picking, setPicking] = useState(true);
@@ -105,6 +105,7 @@ export function OrderForm() {
       setError(result.message);
       return;
     }
+    if (result.id) onCreated?.(result.id);
     setError(null);
     setQty(emptyQuantities(products));
     setNote("");
@@ -141,7 +142,7 @@ export function OrderForm() {
                 <TextInput
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Cari nama toko, kota, atau kontak"
+                  placeholder="Cari toko tani, poktan, kota, atau kontak"
                   aria-label="Cari mitra"
                   autoComplete="off"
                 />

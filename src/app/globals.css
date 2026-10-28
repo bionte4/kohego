@@ -42,3 +42,52 @@ textarea {
   background: #bbf7d0;
   color: #10281c;
 }
+
+@media print {
+  body:has(#nota-cetak) {
+    background: white;
+  }
+
+  body:has(#nota-cetak) * {
+    visibility: hidden;
+  }
+
+  body:has(#nota-cetak) #nota-cetak,
+  body:has(#nota-cetak) #nota-cetak * {
+    visibility: visible;
+  }
+
+  body:has(#nota-cetak) #nota-cetak {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80mm;
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  body:has(#laporan-keuangan) {
+    background: white;
+  }
+
+  body:has(#laporan-keuangan) * {
+    visibility: hidden;
+  }
+
+  body:has(#laporan-keuangan) #laporan-keuangan,
+  body:has(#laporan-keuangan) #laporan-keuangan * {
+    visibility: visible;
+  }
+
+  body:has(#laporan-keuangan) #laporan-keuangan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 8mm;
+  }
+}

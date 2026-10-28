@@ -51,7 +51,7 @@ export function DashboardView() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <p className="max-w-xl text-sm leading-6 text-slate-600">{intro}</p>
         {showSales && role !== "FIELD_SALES" ? (
-          <Link href="/penjualan" className={buttonClass("primary", "shrink-0")}>
+          <Link href="/orders/fast" className={buttonClass("primary", "shrink-0")}>
             <ClipboardList className="h-4 w-4" aria-hidden />
             Catat pesanan
           </Link>
@@ -186,7 +186,7 @@ export function DashboardView() {
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-display text-xl text-ink">Pesanan terbaru</h2>
-          <Link href="/penjualan" className="text-sm font-medium text-forest-800">
+          <Link href="/orders/fast" className="text-sm font-medium text-forest-800">
             Semua penjualan
           </Link>
         </div>

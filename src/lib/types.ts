@@ -27,7 +27,7 @@ export interface Product {
   sku: string;
 }
 
-export type PartnerType = "toko_tani" | "perkebunan" | "urban";
+export type PartnerType = "toko_tani" | "poktan" | "perkebunan" | "urban";
 
 export interface Partner {
   id: string;
@@ -140,6 +140,18 @@ export interface OrderDraft {
   payment: PaymentMethod;
   geo: GeoTag | null;
   note: string;
+}
+
+/** What the fast-order API returns after stock is deducted and the partner history is written. */
+export interface FastOrderReceipt {
+  id: string;
+  code: string;
+  partnerId: string;
+  warehouseId: string;
+  payment: PaymentMethod;
+  totalIdr: number;
+  kilograms: number;
+  packages: number;
 }
 
 export interface ReceiptDraft {

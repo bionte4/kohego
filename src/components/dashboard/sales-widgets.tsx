@@ -14,7 +14,7 @@ export function SalesShortcut() {
     <Card>
       <CardTitle>Pesanan lapangan</CardTitle>
       <p className="mb-4 text-sm leading-6 text-slate-600">Catat pembelian toko tani, perkebunan, atau urban farmer dari wilayah kerja Anda.</p>
-      <Link href="/penjualan" className={buttonClass("primary")}>
+      <Link href="/orders/fast" className={buttonClass("primary")}>
         <ClipboardList className="h-4 w-4" aria-hidden />
         Catat pesanan
       </Link>

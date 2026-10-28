@@ -2,6 +2,7 @@ import type { MovementKind, PackageSize, PackageUnit, PartnerType, PaymentMethod
 
 export const PARTNER_TYPE_LABEL: Record<PartnerType, string> = {
   toko_tani: "Toko Tani",
+  poktan: "Poktan",
   perkebunan: "Perkebunan",
   urban: "Urban Farmer",
 };

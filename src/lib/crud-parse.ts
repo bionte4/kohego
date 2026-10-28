@@ -24,7 +24,7 @@ function coordinate(value: unknown) {
   return Number.isFinite(number) ? number : Number.NaN;
 }
 
-const PARTNER_TYPES: PartnerType[] = ["toko_tani", "perkebunan", "urban"];
+const PARTNER_TYPES: PartnerType[] = ["toko_tani", "poktan", "perkebunan", "urban"];
 const PAYMENTS: PaymentMethod[] = ["tunai", "transfer", "konsinyasi"];
 const GENDERS: AnimalGender[] = ["jantan", "betina", "campuran"];
 const HEALTH: HealthStatus[] = ["sehat", "pantau", "sakit", "karantina", "terjual"];

@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { SalesView } from "@/components/sales/sales-view";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Pesanan Cepat",
-};
-
-export default function SalesPage() {
-  return <SalesView />;
+export default function SalesRedirectPage() {
+  redirect("/orders/fast");
 }

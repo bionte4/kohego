@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useCan } from "@/components/access/role-provider";
+import { InvoiceModal } from "@/components/orders/InvoiceModal";
 import { useStoreState } from "@/components/providers/store-provider";
 import { OrderForm } from "@/components/sales/order-form";
 import { OrderList } from "@/components/sales/order-list";
@@ -19,6 +20,7 @@ export function SalesView() {
   const canDelete = useCan("orders", "delete");
   const [filter, setFilter] = useState<OrderFilter>("all");
   const [showAll, setShowAll] = useState(false);
+  const [receiptId, setReceiptId] = useState<string | null>(null);
   const now = useMemo(() => (store.ready ? new Date() : null), [store.ready]);
 
   const filtered = useMemo(() => {
@@ -36,11 +38,12 @@ export function SalesView() {
 
   const { partners, warehouses } = store;
   const visible = showAll ? filtered : filtered.slice(0, 8);
+  const receipt = store.orders.find((order) => order.id === receiptId) ?? null;
 
   return (
     <div className="grid items-start gap-6 pb-24 md:pb-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
       {canCreate ? (
-        <OrderForm />
+        <OrderForm onCreated={setReceiptId} />
       ) : (
         <Card>
           <CardTitle>Pesanan cepat</CardTitle>
@@ -95,6 +98,7 @@ export function SalesView() {
                 }
               : undefined
           }
+          onReceipt={setReceiptId}
           empty={filter === "today" ? "Belum ada pesanan hari ini." : "Belum ada pesanan pada filter ini."}
         />
         {filtered.length > visible.length ? (
@@ -107,6 +111,13 @@ export function SalesView() {
           </button>
         ) : null}
       </section>
+      <InvoiceModal
+        order={receipt}
+        partner={partners.find((partner) => partner.id === receipt?.partnerId)}
+        warehouse={warehouses.find((warehouse) => warehouse.id === receipt?.warehouseId)}
+        products={store.products}
+        onClose={() => setReceiptId(null)}
+      />
     </div>
   );
 }

@@ -100,6 +100,7 @@ export function PartnerDirectory() {
   const filters: { id: TypeFilter; label: string }[] = [
     { id: "all", label: "Semua" },
     { id: "toko_tani", label: "Toko Tani" },
+    { id: "poktan", label: "Poktan" },
     { id: "perkebunan", label: "Perkebunan" },
     { id: "urban", label: "Urban" },
   ];
@@ -511,6 +512,7 @@ function PartnerForm({
           onChange={(type) => update({ type })}
           options={[
             { value: "toko_tani", label: "Toko Tani", hint: "B2B" },
+            { value: "poktan", label: "Poktan", hint: "B2B" },
             { value: "perkebunan", label: "Perkebunan", hint: "B2B" },
             { value: "urban", label: "Urban Farmer", hint: "B2C" },
           ]}

@@ -15,6 +15,7 @@ export function OrderList({
   warehouses,
   onSettle,
   onCancel,
+  onReceipt,
   empty,
 }: {
   orders: Order[];
@@ -22,6 +23,7 @@ export function OrderList({
   warehouses: Warehouse[];
   onSettle?: (orderId: string) => void;
   onCancel?: (orderId: string) => void;
+  onReceipt?: (orderId: string) => void;
   empty: string;
 }) {
   const now = useMemo(() => new Date(), []);
@@ -61,6 +63,11 @@ export function OrderList({
                 ) : null}
               </p>
               {order.note ? <p className="mt-2 text-sm text-slate-600">{order.note}</p> : null}
+              {onReceipt ? (
+                <Button variant="secondary" className="mt-3" onClick={() => onReceipt(order.id)}>
+                  Lihat Nota
+                </Button>
+              ) : null}
               <SettleAction
                 order={order}
                 pending={pendingId === order.id}
@@ -109,14 +116,21 @@ export function OrderList({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <SettleAction
+                    <div className="flex flex-wrap gap-2">
+                      {onReceipt ? (
+                        <Button variant="secondary" onClick={() => onReceipt(order.id)}>
+                          Lihat Nota
+                        </Button>
+                      ) : null}
+                      <SettleAction
                       order={order}
                       pending={pendingId === order.id}
                       onAsk={() => setPendingId(order.id)}
                       onCancel={() => setPendingId(null)}
                       onSettle={onSettle}
                     />
-                    <CancelOrder orderId={order.id} onCancel={onCancel} />
+                      <CancelOrder orderId={order.id} onCancel={onCancel} />
+                    </div>
                   </td>
                 </tr>
               );

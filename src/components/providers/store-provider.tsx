@@ -22,8 +22,11 @@ import {
   type MutationResult,
 } from "@/lib/mutations";
 import { createSeed } from "@/lib/seed";
-import { getClientSnapshot, getServerSnapshot, replaceState, subscribeStore } from "@/lib/storage";
+import { getClientSnapshot, getServerSnapshot, parseSalesBook, replaceState, subscribeStore } from "@/lib/storage";
 import { guard } from "@/lib/guard";
+import { ledgerRevision, rememberLedgerRevision } from "@/lib/ledger-sync";
+import { can, denialMessage } from "@/lib/rbac";
+import { getRoleClient } from "@/lib/role-store";
 import type { ActionResult, AgentProfile, AppData, OpnameDraft, OrderDraft, PartnerDraft, ProductDraft, ReceiptDraft, TransferDraft, VariantId, WarehouseDraft } from "@/lib/types";
 
 interface StoreActions {
@@ -103,11 +106,46 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const placeOrder = useCallback(
     async (draft: OrderDraft): Promise<ActionResult> => {
-      const denied = await guard("orders", "create", draft);
-      if (denied) return { ok: false, message: denied };
+      const role = getRoleClient();
+      if (!role) return { ok: false, message: "Peran belum dimuat." };
+      if (!can(role, "orders", "create")) return { ok: false, message: denialMessage(role, "orders", "create") };
       const current = readyData();
       if (!current) return { ok: false, message: "Data belum siap." };
-      return commitResult(applyOrder(current, draft));
+      const applyLocal = () => commitResult(applyOrder(current, draft));
+      try {
+        const response = await fetch("/api/orders/fast", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ draft, revision: ledgerRevision("sales"), book: current }),
+        });
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+          notice?: string;
+          offline?: boolean;
+          revision?: number;
+          payload?: unknown;
+          data?: unknown;
+          order?: { id?: string };
+        } | null;
+        if (response.status === 503 || body?.offline) return applyLocal();
+        if (response.status === 409) {
+          const adopted = parseSalesBook(body?.payload);
+          if (adopted && typeof body?.revision === "number") {
+            replaceState(adopted, { quiet: true });
+            rememberLedgerRevision("sales", body.revision);
+          }
+          return { ok: false, message: body?.message ?? "Buku penjualan berubah. Coba lagi." };
+        }
+        if (!response.ok || !body?.order?.id) return { ok: false, message: body?.message ?? "Pesanan tidak tersimpan." };
+        const saved = parseSalesBook(body.data);
+        if (!saved) return { ok: false, message: "Jawaban server tidak valid." };
+        const stored = replaceState(saved, { quiet: true });
+        if (typeof body.revision === "number") rememberLedgerRevision("sales", body.revision);
+        setToast(stored ? (body.notice ?? "Pesanan tersimpan.") : SAVE_FAILED);
+        return { ok: true, id: body.order.id };
+      } catch {
+        return applyLocal();
+      }
     },
     [commitResult, readyData],
   );

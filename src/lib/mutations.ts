@@ -59,7 +59,7 @@ function shortageMessage(data: AppData, variant: VariantId, place: string, onHan
   return `Stok ${product?.label ?? "produk"} di ${place} tinggal ${onHand} ${unit}.`;
 }
 
-const PARTNER_TYPES: PartnerType[] = ["toko_tani", "perkebunan", "urban"];
+const PARTNER_TYPES: PartnerType[] = ["toko_tani", "poktan", "perkebunan", "urban"];
 
 function normalizePartner(draft: PartnerDraft): { ok: true; value: Omit<Partner, "id"> } | { ok: false; message: string } {
   const name = draft.name.trim();

@@ -191,6 +191,7 @@ function paymentFor(partner: Omit<Partner, "geo">, rand: () => number): PaymentM
 
 const ASSORTMENT: Record<Partner["type"], VariantId[]> = {
   toko_tani: ["kambing-5", "kambing-10", "ayam-5", "ayam-10", "poc-1"],
+  poktan: ["kambing-25", "sapi-25", "ayam-10", "poc-5"],
   perkebunan: ["kambing-25", "sapi-25", "sapi-10", "ayam-10", "poc-5"],
   urban: ["poc-1", "poc-5", "kambing-5", "ayam-5"],
 };

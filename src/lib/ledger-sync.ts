@@ -107,6 +107,15 @@ async function pull() {
 
 let started = false;
 
+export function ledgerRevision(key: LedgerKey) {
+  return revisions[key];
+}
+
+export function rememberLedgerRevision(key: LedgerKey, revision: number) {
+  revisions[key] = revision;
+  clearLedgerDirty(key);
+}
+
 export function startLedgerSync() {
   if (started || typeof window === "undefined") return;
   started = true;
