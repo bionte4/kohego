@@ -1,0 +1,241 @@
+"use client";
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  applyCancelOrder,
+  applyOrder,
+  applyPartner,
+  applyProfile,
+  applyReceipt,
+  applyRemovePartner,
+  applySettle,
+  applyTransfer,
+  applyUpdatePartner,
+  applyWriteOff,
+  type MutationResult,
+} from "@/lib/mutations";
+import { createSeed } from "@/lib/seed";
+import { getClientSnapshot, getServerSnapshot, replaceState, subscribeStore } from "@/lib/storage";
+import { guard } from "@/lib/guard";
+import type { ActionResult, AgentProfile, AppData, OrderDraft, PartnerDraft, ReceiptDraft, TransferDraft, VariantId } from "@/lib/types";
+
+interface StoreActions {
+  placeOrder: (draft: OrderDraft) => Promise<ActionResult>;
+  receiveStock: (draft: ReceiptDraft) => Promise<ActionResult>;
+  transferStock: (draft: TransferDraft) => Promise<ActionResult>;
+  writeOffStock: (draft: { warehouseId: string; variant: VariantId; qty: number }) => Promise<ActionResult>;
+  addPartner: (draft: PartnerDraft) => Promise<ActionResult>;
+  updatePartner: (partnerId: string, draft: PartnerDraft) => Promise<ActionResult>;
+  removePartner: (partnerId: string) => Promise<ActionResult>;
+  settleOrder: (orderId: string) => Promise<ActionResult>;
+  cancelOrder: (orderId: string) => Promise<ActionResult>;
+  updateProfile: (draft: AgentProfile) => ActionResult;
+  resetDemo: () => void;
+}
+
+export type StoreApi = { ready: false } | ({ ready: true } & AppData & StoreActions);
+
+const StoreContext = createContext<StoreApi | null>(null);
+
+export function useStoreState() {
+  const store = useContext(StoreContext);
+  if (!store) {
+    throw new Error("useStore harus dipakai di dalam data penjualan.");
+  }
+  return store;
+}
+
+export function useStore() {
+  const store = useStoreState();
+  if (!store.ready) {
+    throw new Error("Data penjualan belum siap.");
+  }
+  return store;
+}
+
+function Toast({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-md rounded-2xl bg-forest-950 px-4 py-3 text-sm text-white shadow-lg md:bottom-6 md:left-auto md:right-6"
+    >
+      {message}
+    </div>
+  );
+}
+
+const SAVE_FAILED = "Perubahan tidak tersimpan. Penyimpanan browser penuh atau diblokir.";
+
+export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const data = useSyncExternalStore(subscribeStore, getClientSnapshot, getServerSnapshot);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const commitResult = useCallback((result: MutationResult): ActionResult => {
+    if (!result.ok) return { ok: false, message: result.message };
+    const saved = replaceState(result.data);
+    setToast(saved ? result.notice : SAVE_FAILED);
+    return { ok: true, id: result.id };
+  }, []);
+
+  const readyData = useCallback((): AppData | null => getClientSnapshot(), []);
+
+  const placeOrder = useCallback(
+    async (draft: OrderDraft): Promise<ActionResult> => {
+      const denied = await guard("orders", "create", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyOrder(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const receiveStock = useCallback(
+    async (draft: ReceiptDraft): Promise<ActionResult> => {
+      const denied = await guard("inventory", "create", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyReceipt(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const transferStock = useCallback(
+    async (draft: TransferDraft): Promise<ActionResult> => {
+      const denied = await guard("inventory", "update", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyTransfer(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const writeOffStock = useCallback(
+    async (draft: { warehouseId: string; variant: VariantId; qty: number }): Promise<ActionResult> => {
+      const denied = await guard("inventory", "delete", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyWriteOff(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const addPartner = useCallback(
+    async (draft: PartnerDraft): Promise<ActionResult> => {
+      const denied = await guard("partners", "create", draft);
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyPartner(current, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const updatePartner = useCallback(
+    async (partnerId: string, draft: PartnerDraft): Promise<ActionResult> => {
+      const denied = await guard("partners", "update", { id: partnerId, ...draft });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyUpdatePartner(current, partnerId, draft));
+    },
+    [commitResult, readyData],
+  );
+
+  const removePartner = useCallback(
+    async (partnerId: string): Promise<ActionResult> => {
+      const denied = await guard("partners", "delete", { id: partnerId });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyRemovePartner(current, partnerId));
+    },
+    [commitResult, readyData],
+  );
+
+  const settleOrder = useCallback(
+    async (orderId: string): Promise<ActionResult> => {
+      const denied = await guard("orders", "update", { id: orderId });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applySettle(current, orderId));
+    },
+    [commitResult, readyData],
+  );
+
+  const cancelOrder = useCallback(
+    async (orderId: string): Promise<ActionResult> => {
+      const denied = await guard("orders", "delete", { id: orderId });
+      if (denied) return { ok: false, message: denied };
+      const current = readyData();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyCancelOrder(current, orderId));
+    },
+    [commitResult, readyData],
+  );
+
+  const updateProfile = useCallback(
+    (draft: AgentProfile): ActionResult => {
+      const current = getClientSnapshot();
+      if (!current) return { ok: false, message: "Data belum siap." };
+      return commitResult(applyProfile(current, draft));
+    },
+    [commitResult],
+  );
+
+  const resetDemo = useCallback(() => {
+    const saved = replaceState(createSeed());
+    setToast(saved ? "Data contoh dipulihkan." : SAVE_FAILED);
+  }, []);
+
+  const api = useMemo<StoreApi>(() => {
+    if (!data) return { ready: false };
+    return {
+      ready: true,
+      ...data,
+      placeOrder,
+      receiveStock,
+      transferStock,
+      writeOffStock,
+      addPartner,
+      updatePartner,
+      removePartner,
+      settleOrder,
+      cancelOrder,
+      updateProfile,
+      resetDemo,
+    };
+  }, [
+    data,
+    placeOrder,
+    receiveStock,
+    transferStock,
+    writeOffStock,
+    addPartner,
+    updatePartner,
+    removePartner,
+    settleOrder,
+    cancelOrder,
+    updateProfile,
+    resetDemo,
+  ]);
+
+  return (
+    <StoreContext.Provider value={api}>
+      {children}
+      <Toast message={toast} />
+    </StoreContext.Provider>
+  );
+}

@@ -1,0 +1,2 @@
+# prisma migrate lock. Do not change the provider after the first migration.
+provider = "postgresql"

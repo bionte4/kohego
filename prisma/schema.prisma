@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+}
+
+enum SocialConnectionStatus {
+  CONNECTED
+  EXPIRED
+  DISCONNECTED
+}
+
+/// OAuth credentials for the publisher. Token columns are AES-GCM ciphertext, never plaintext.
+model SocialAccount {
+  id                String                 @id @default(cuid())
+  platform          SocialPlatform
+  accountName       String
+  externalAccountId String
+  accessTokenEnc    String?                @db.Text
+  refreshTokenEnc   String?                @db.Text
+  accessExpiresAt   DateTime?
+  refreshExpiresAt  DateTime?
+  scopes            String                 @default("")
+  status            SocialConnectionStatus @default(DISCONNECTED)
+  lastRefreshAt     DateTime?
+  lastError         String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@unique([platform, externalAccountId])
+  @@index([platform, status])
+  @@map("social_accounts")
+}
+
+enum LivestockSpecies {
+  SAPI
+  KAMBING
+  AYAM
+  BEBEK
+}
+
+enum AnimalSex {
+  JANTAN
+  BETINA
+  CAMPURAN
+}
+
+enum AnimalHealth {
+  SEHAT
+  PANTAU
+  SAKIT
+  KARANTINA
+  TERJUAL
+}
+
+enum WasteBatchStatus {
+  TERSEDIA
+  MASUK_PRODUKSI
+}
+
+/// Live animals and the fresh manure they produce. Packaged stock stays on the sales ledger.
+model Pen {
+  id       String           @id
+  name     String
+  species  LivestockSpecies
+  location String
+  capacity Int
+  animals  Animal[]
+  waste    WasteBatch[]
+
+  @@map("pens")
+}
+
+model Animal {
+  id        String           @id
+  earTag    String           @unique
+  species   LivestockSpecies
+  breed     String
+  sex       AnimalSex
+  birthDate DateTime         @db.Date
+  weightKg  Decimal          @db.Decimal(8, 1)
+  headcount Int
+  health    AnimalHealth
+  note      String           @default("")
+  penId     String
+  pen       Pen              @relation(fields: [penId], references: [id])
+  updatedAt DateTime
+  waste     WasteBatch[]
+
+  @@index([species, health])
+  @@map("animals")
+}
+
+model WasteBatch {
+  id          String           @id
+  animalId    String?
+  animal      Animal?          @relation(fields: [animalId], references: [id])
+  penId       String
+  pen         Pen              @relation(fields: [penId], references: [id])
+  species     LivestockSpecies
+  massKg      Decimal          @db.Decimal(10, 1)
+  collectedAt DateTime
+  status      WasteBatchStatus @default(TERSEDIA)
+  note        String           @default("")
+
+  @@index([species, status])
+  @@map("waste_batches")
+}
+
+enum ProductionStatus {
+  DRAFT
+  COMPLETED
+}
+
+/// A collection of fresh manure. remaining_kg is what production can still draw.
+model WasteCollectionLog {
+  id          String           @id
+  category    LivestockSpecies
+  weightKg    Decimal          @db.Decimal(10, 1)
+  remainingKg Decimal          @db.Decimal(10, 1)
+  collectedAt DateTime
+
+  @@index([category, collectedAt])
+  @@map("waste_collection_logs")
+}
+
+/// Finished SKU whose on-hand count production increments when a batch completes.
+model ProductVariant {
+  id          String            @id
+  label       String
+  family      String
+  packageSize Decimal           @db.Decimal(8, 2)
+  unit        String
+  stockOnHand Int               @default(0)
+  batches     ProductionBatch[]
+
+  @@map("product_variants")
+}
+
+/// Composting batch. output_units = floor((raw_weight_kg * conversion_rate) / package_size).
+model ProductionBatch {
+  id             String           @id
+  category       LivestockSpecies
+  rawWeightKg    Decimal          @db.Decimal(10, 1)
+  conversionRate Decimal          @db.Decimal(6, 4)
+  variantId      String
+  variant        ProductVariant   @relation(fields: [variantId], references: [id])
+  packageSize    Decimal          @db.Decimal(8, 2)
+  outputUnits    Int
+  status         ProductionStatus @default(DRAFT)
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@index([category, status])
+  @@map("production_batches")
+}

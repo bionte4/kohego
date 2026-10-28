@@ -1,0 +1,21 @@
+# .cursorrules - Sales & Distribution Dashboard (Kohe Kambing App)
+
+## Tech Stack & Architecture
+- Framework: Next.js 14+ (App Router)
+- Styling: Tailwind CSS (Mobile-first responsive design)
+- UI Components: Radix UI / shadcn/ui primitives
+- Icons: Lucide React
+- State Management: React Context / Zustand for local state & caching
+- Storage: LocalStorage / IndexedDB for offline-first sales logging (or Supabase/PostgreSQL backend ready)
+
+## Design & UI/UX Principles (Multi-Platform)
+- **Responsive First:** Must look pristine and function smoothly across Mobile (375px+), Tablet (768px+), and Desktop (1280px+).
+- **Touch Friendly:** Interactive elements (buttons, inputs, cards) must have adequate touch targets (min 44x44px) for mobile/tablet users in the field.
+- **Color Palette:** Natural & Professional Agriculture theme (Forest Green `#166534`, Earth Brown `#78350f`, Cream/Off-white background `#f9fafb`, Slate text).
+- **Performance:** Lightweight, fast loading, smooth transitions.
+
+## Code Quality Standards
+- Use TypeScript for strict type safety.
+- Modular component structure (`/components/ui`, `/components/dashboard`, `/components/sales`).
+- Clean separation of business logic (hooks/services) and UI components.
+- Write descriptive comments for complex calculation logic (e.g., commissions, inventory turnover, revenue metrics).
