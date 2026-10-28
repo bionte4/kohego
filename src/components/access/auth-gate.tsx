@@ -18,16 +18,25 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     if (user && signingIn) router.replace("/dashboard");
   }, [ready, user, signingIn, router]);
 
-  if (!ready) {
-    return <p className="px-6 py-16 text-sm text-slate-500">Memeriksa sesi...</p>;
+  const showApp = ready && Boolean(user) && !signingIn;
+  const showLogin = ready && !user && signingIn;
+
+  if (showApp) {
+    return (
+      <>
+        <LedgerSync />
+        <AppShell>{children}</AppShell>
+      </>
+    );
   }
-  if (!user && !signingIn) return null;
-  if (user && signingIn) return null;
-  if (signingIn) return children;
+  if (showLogin) return children;
+
   return (
     <>
-      <LedgerSync />
-      <AppShell>{children}</AppShell>
+      <p className="px-6 py-16 text-sm text-slate-500">{ready ? "Mengalihkan..." : "Memeriksa sesi..."}</p>
+      <div hidden inert aria-hidden>
+        {children}
+      </div>
     </>
   );
 }
