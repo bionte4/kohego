@@ -99,6 +99,7 @@ model Animal {
   treatmentCases  LivestockTreatmentCase[]
   opsAlerts       LivestockOpsAlert[]
   medicalHistory  LivestockMedicalHistory[]
+  scheduledTreatments LivestockTreatment[]
 
   @@index([species, health])
   @@map("animals")
@@ -204,6 +205,38 @@ model LivestockMedicalHistory {
 
   @@index([earTag, appliedAt])
   @@map("livestock_medical_history")
+}
+
+enum LivestockCareKind {
+  VACCINATION
+  DEWORMING
+  VITAMIN
+  MEDICAL_CARE
+}
+
+enum LivestockCareStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+}
+
+/// A planned vaccination, deworming, vitamin, or medical-care visit for one ear tag or poultry lot.
+model LivestockTreatment {
+  id          String              @id
+  earTag      String              @map("ear_tag_id")
+  animal      Animal              @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  kind        LivestockCareKind
+  scheduledOn DateTime            @map("scheduled_on") @db.Date
+  staffName   String              @map("staff_name")
+  dosage      String
+  status      LivestockCareStatus @default(PENDING)
+  completedAt DateTime?           @map("completed_at")
+  note        String              @default("")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  @@index([earTag, scheduledOn])
+  @@index([status, scheduledOn])
+  @@map("livestock_treatments")
 }
 
 model WasteBatch {

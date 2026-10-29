@@ -1,4 +1,5 @@
 import { parseHealthLogs } from "@/lib/health";
+import { parseScheduledTreatments } from "@/lib/medical-schedule";
 import { parseMedicalHistory, parseTreatmentCases } from "@/lib/treatment";
 import { createLivestockSeed, type Animal, type AnimalGender, type LivestockBook, type LivestockSpecies, type ProductionBatch } from "@/lib/livestock";
 import { noteLedgerWrite } from "@/lib/ledger-bus";
@@ -46,6 +47,7 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     healthLogs?: unknown;
     treatmentCases?: unknown;
     medicalHistory?: unknown;
+    scheduledTreatments?: unknown;
   };
   if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.pens) || !Array.isArray(parsed.animals) || !Array.isArray(parsed.waste)) {
     return null;
@@ -59,6 +61,7 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     healthLogs: parseHealthLogs(parsed.healthLogs),
     treatmentCases: parseTreatmentCases(parsed.treatmentCases),
     medicalHistory: parseMedicalHistory(parsed.medicalHistory),
+    scheduledTreatments: parseScheduledTreatments(parsed.scheduledTreatments),
   };
 }
 
@@ -114,6 +117,10 @@ export function getLivestockClient() {
   }
   if (!Array.isArray(memory.medicalHistory)) {
     memory = { ...memory, medicalHistory: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.scheduledTreatments)) {
+    memory = { ...memory, scheduledTreatments: [] };
     wroteInitial = false;
   }
   if (!wroteInitial) {

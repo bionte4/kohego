@@ -191,9 +191,14 @@ export function LivestockView() {
         <p className="max-w-2xl text-sm leading-6 text-slate-600">
           {heads} ekor di kandang{sold > 0 ? `, ${sold} ekor terjual` : ""}. {formatWeight(raw)} kohe segar masih bisa dikemas ke stok pupuk.
         </p>
-        <Link href="/livestock/health" className={buttonClass("secondary", "shrink-0")}>
-          Kesehatan ternak
-        </Link>
+        <span className="flex flex-wrap gap-2">
+          <Link href="/livestock/health" className={buttonClass("secondary", "shrink-0")}>
+            Kesehatan ternak
+          </Link>
+          <Link href="/livestock/treatments" className={buttonClass("secondary", "shrink-0")}>
+            Jadwal pengobatan
+          </Link>
+        </span>
       </div>
       <HealthAlertBanner book={data} />
       <div className="flex flex-wrap gap-2">

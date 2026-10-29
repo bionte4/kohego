@@ -1,5 +1,6 @@
 import { PRODUCTS } from "@/lib/catalog";
 import { herdStatusForCheck, seedHealthLogs, type HealthLog } from "@/lib/health";
+import { seedScheduledTreatments, type ScheduledTreatment } from "@/lib/medical-schedule";
 import type { MedicalHistoryEntry, TreatmentCase } from "@/lib/treatment";
 import type { Product, ProductFamilyId, VariantId } from "@/lib/types";
 
@@ -80,6 +81,7 @@ export interface LivestockBook {
   healthLogs: HealthLog[];
   treatmentCases: TreatmentCase[];
   medicalHistory: MedicalHistoryEntry[];
+  scheduledTreatments: ScheduledTreatment[];
 }
 
 export interface AnimalDraft {
@@ -250,7 +252,17 @@ export function createLivestockSeed(): LivestockBook {
     return health ? { ...item, health } : item;
   });
 
-  return { version: 2, pens, animals: herd, waste, batches: [], healthLogs, treatmentCases: [], medicalHistory: [] };
+  return {
+    version: 2,
+    pens,
+    animals: herd,
+    waste,
+    batches: [],
+    healthLogs,
+    treatmentCases: [],
+    medicalHistory: [],
+    scheduledTreatments: seedScheduledTreatments(),
+  };
 }
 
 function animal(

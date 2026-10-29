@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { useCan } from "@/components/access/role-provider";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, TextInput } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
@@ -97,9 +97,14 @@ export function HealthView() {
 
   return (
     <div className="space-y-4">
-      <p className="max-w-2xl text-sm leading-6 text-slate-600">
-        {attention.length} ternak perlu perhatian. Skor dihitung dari suhu, aktivitas, dan gejala. Ini simulasi untuk petugas kandang, bukan diagnosis dokter hewan.
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+          {attention.length} ternak perlu perhatian. Skor dihitung dari suhu, aktivitas, dan gejala. Ini simulasi untuk petugas kandang, bukan diagnosis dokter hewan.
+        </p>
+        <Link href="/livestock/treatments" className={buttonClass("secondary", "shrink-0")}>
+          Jadwal pengobatan
+        </Link>
+      </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <Summary label="Karantina" value={herd.filter((animal) => animal.health === "karantina").length} tone="earth" />
         <Summary label="Sakit" value={herd.filter((animal) => animal.health === "sakit").length} tone="red" />

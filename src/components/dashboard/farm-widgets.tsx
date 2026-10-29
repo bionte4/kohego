@@ -25,9 +25,12 @@ export function FarmWidgets() {
       <Card>
         <CardTitle
           action={
-            <span className="flex gap-3">
+            <span className="flex flex-wrap justify-end gap-x-3">
               <Link href="/livestock/health" className="inline-flex min-h-11 items-center text-sm font-medium text-forest-800">
                 Kesehatan
+              </Link>
+              <Link href="/livestock/treatments" className="inline-flex min-h-11 items-center text-sm font-medium text-forest-800">
+                Jadwal
               </Link>
               <Link href="/kandang" className="inline-flex min-h-11 items-center text-sm font-medium text-forest-800">
                 Kandang
