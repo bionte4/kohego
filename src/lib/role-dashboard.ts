@@ -1,4 +1,4 @@
-import { availableWasteKg, expectedDailyManureKg, liveWeightKg, SPECIES_LABEL, SPECIES_ORDER, type LivestockBook } from "@/lib/livestock";
+import { availableWasteKg, manureProjection, liveWeightKg, SPECIES_LABEL, SPECIES_ORDER, type LivestockBook } from "@/lib/livestock";
 import { historyStatusLabel, type PublisherBook } from "@/lib/publisher";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -50,11 +50,14 @@ export function wasteIntake(book: LivestockBook, now: Date) {
     weekKg += row.massKg;
     if (time >= startToday.getTime()) todayKg += row.massKg;
   }
+  const projection = manureProjection(book.animals);
   return {
     todayKg,
     weekKg,
     availableKg: availableWasteKg(book.waste),
-    expectedDailyKg: expectedDailyManureKg(book.animals),
+    expectedDailyKg: projection.includedKg,
+    withheldDailyKg: projection.withheldKg,
+    withheldHeads: projection.withheldHeads,
   };
 }
 

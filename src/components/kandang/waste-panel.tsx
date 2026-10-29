@@ -19,7 +19,7 @@ import {
   WASTE_STATUS_LABEL,
   availableWasteKg,
   conversionVariants,
-  expectedDailyManureKg,
+  manureProjection,
   maxPackages,
   type LivestockBook,
   type WasteDraft,
@@ -70,14 +70,15 @@ export function WastePanel({
         {SPECIES_ORDER.map((species) => {
           const family = SPECIES_PRODUCT_FAMILY[species];
           const available = availableWasteKg(book.waste, species);
-          const expected = expectedDailyManureKg(book.animals, species);
+          const projection = manureProjection(book.animals, species);
           const products = family ? productsByFamily(family, catalog) : [];
           return (
             <article key={species} className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-sm text-slate-500">Kohe {SPECIES_LABEL[species]}</p>
               <p className="mt-1 font-display text-2xl text-ink">{formatWeight(available)}</p>
               <p className="mt-1 text-xs text-slate-500">
-                Perkiraan harian dari bobot hidup {formatWeight(expected)}
+                Perkiraan harian {formatWeight(projection.includedKg)}
+                {projection.withheldKg > 0 ? `. ${formatWeight(projection.withheldKg)} ditahan karena sakit atau karantina` : ""}
               </p>
               <p className="mt-2 text-xs text-slate-600">
                 {family

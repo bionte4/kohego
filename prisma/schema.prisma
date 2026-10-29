@@ -91,13 +91,119 @@ model Animal {
   headcount Int
   health    AnimalHealth
   note      String           @default("")
-  penId     String
-  pen       Pen              @relation(fields: [penId], references: [id])
-  updatedAt DateTime
-  waste     WasteBatch[]
+  penId      String
+  pen        Pen                 @relation(fields: [penId], references: [id])
+  updatedAt  DateTime
+  waste           WasteBatch[]
+  healthLogs      LivestockHealthLog[]
+  treatmentCases  LivestockTreatmentCase[]
+  opsAlerts       LivestockOpsAlert[]
+  medicalHistory  LivestockMedicalHistory[]
 
   @@index([species, health])
   @@map("animals")
+}
+
+enum HealthCheckStatus {
+  HEALTHY
+  OBSERVATION
+  QUARANTINE
+  SICK
+}
+
+enum HealthRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// One simulated check tied to an ear tag. The score is a planning aid, not a veterinary diagnosis.
+model LivestockHealthLog {
+  id             String            @id
+  earTag         String            @map("ear_tag_id")
+  animal         Animal            @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  checkedAt      DateTime          @map("checked_at")
+  status         HealthCheckStatus
+  temperatureC   Decimal           @map("temperature_c") @db.Decimal(4, 1)
+  activityLevel  Int               @map("activity_level")
+  symptoms       String            @default("")
+  riskLevel      HealthRiskLevel   @map("risk_level")
+  score          Int
+  diagnosticNote String            @map("diagnostic_note")
+  treatment      String
+  manual         Boolean           @default(false)
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  @@index([earTag, checkedAt])
+  @@map("livestock_health_logs")
+}
+
+enum TreatmentCaseStatus {
+  TERBUKA
+  SELESAI
+}
+
+/// An open or closed treatment case for one ear tag. Doses are the medicines the keeper recorded.
+model LivestockTreatmentCase {
+  id          String               @id
+  earTag      String               @map("ear_tag_id")
+  animal      Animal               @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  healthLogId String               @map("health_log_id")
+  protocolId  String               @map("protocol_id")
+  status      TreatmentCaseStatus  @default(TERBUKA)
+  openedAt    DateTime             @map("opened_at")
+  closedAt    DateTime?            @map("closed_at")
+  doses       Json                 @default("[]")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  @@index([earTag, status])
+  @@map("livestock_treatment_cases")
+}
+
+/// Written by the animals health trigger when a normalized row becomes sick or quarantined.
+model LivestockOpsAlert {
+  id        String       @id @default(cuid())
+  earTag    String       @map("ear_tag_id")
+  animal    Animal       @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  health    AnimalHealth
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@index([earTag, createdAt])
+  @@map("livestock_ops_alerts")
+}
+
+/// Expert-verified treatment actions. The assistant matches symptoms and vitals to these rows.
+model TreatmentProtocol {
+  id         String   @id
+  name       String
+  severity   String
+  symptoms   String   @default("")
+  routine    Boolean  @default(false)
+  summary    String
+  isolation  String
+  medicines  Json
+  steps      Json
+  verified   Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+
+  @@map("treatment_protocols")
+}
+
+/// A protocol the keeper applied to one animal. This is the medical history entry.
+model LivestockMedicalHistory {
+  id           String   @id
+  earTag       String   @map("ear_tag_id")
+  animal       Animal   @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  healthLogId  String   @default("") @map("health_log_id")
+  protocolId   String   @map("protocol_id")
+  protocolName String   @map("protocol_name")
+  summary      String
+  isolation    String
+  appliedAt    DateTime @map("applied_at")
+
+  @@index([earTag, appliedAt])
+  @@map("livestock_medical_history")
 }
 
 model WasteBatch {

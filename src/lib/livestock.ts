@@ -1,4 +1,6 @@
 import { PRODUCTS } from "@/lib/catalog";
+import { herdStatusForCheck, seedHealthLogs, type HealthLog } from "@/lib/health";
+import type { MedicalHistoryEntry, TreatmentCase } from "@/lib/treatment";
 import type { Product, ProductFamilyId, VariantId } from "@/lib/types";
 
 export type LivestockSpecies = "sapi" | "kambing" | "ayam" | "bebek";
@@ -75,6 +77,9 @@ export interface LivestockBook {
   animals: Animal[];
   waste: WasteOutput[];
   batches: ProductionBatch[];
+  healthLogs: HealthLog[];
+  treatmentCases: TreatmentCase[];
+  medicalHistory: MedicalHistoryEntry[];
 }
 
 export interface AnimalDraft {
@@ -175,13 +180,33 @@ export function liveWeightKg(animal: Animal) {
   return animal.weightKg * animal.headcount;
 }
 
-/** Expected fresh kohe for the current herd over one day, from live weight. */
+/**
+ * Fresh kohe expected in one day from live weight.
+ * Sold animals are already gone. Sick and quarantined animals are withheld:
+ * their manure is not part of the composting projection, so a health change
+ * to sakit or karantina lowers the daily figure on the next read.
+ */
+export function manureProjection(animals: Animal[], species?: LivestockSpecies) {
+  let includedKg = 0;
+  let withheldKg = 0;
+  let withheldHeads = 0;
+  for (const animal of animals) {
+    if (species && animal.species !== species) continue;
+    if (animal.health === "terjual") continue;
+    const kilograms = liveWeightKg(animal) * MANURE_FRACTION_PER_DAY[animal.species];
+    if (animal.health === "sakit" || animal.health === "karantina") {
+      withheldKg += kilograms;
+      withheldHeads += animal.headcount;
+    } else {
+      includedKg += kilograms;
+    }
+  }
+  return { includedKg, withheldKg, withheldHeads };
+}
+
+/** Expected fresh kohe that can still enter composting. Sick and quarantine are excluded. */
 export function expectedDailyManureKg(animals: Animal[], species?: LivestockSpecies) {
-  return animals.reduce((sum, animal) => {
-    if (species && animal.species !== species) return sum;
-    if (animal.health === "terjual") return sum;
-    return sum + liveWeightKg(animal) * MANURE_FRACTION_PER_DAY[animal.species];
-  }, 0);
+  return manureProjection(animals, species).includedKg;
 }
 
 export function availableWasteKg(waste: WasteOutput[], species?: LivestockSpecies) {
@@ -218,7 +243,14 @@ export function createLivestockSeed(): LivestockBook {
     wasteRow("wst-04", "ani-bdk-07", "pen-bebek", "bebek", 9, "2026-10-27T04:20:00.000Z", "tersedia", "Belum ada SKU kemasan."),
   ];
 
-  return { version: 2, pens, animals, waste, batches: [] };
+  const healthLogs = seedHealthLogs();
+  const checked = new Map(healthLogs.map((log) => [log.earTag, herdStatusForCheck(log.status)]));
+  const herd = animals.map((item) => {
+    const health = checked.get(item.earTag);
+    return health ? { ...item, health } : item;
+  });
+
+  return { version: 2, pens, animals: herd, waste, batches: [], healthLogs, treatmentCases: [], medicalHistory: [] };
 }
 
 function animal(

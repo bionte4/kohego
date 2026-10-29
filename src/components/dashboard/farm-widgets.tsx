@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { HealthAlertBanner } from "@/components/kandang/health-alert-banner";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatWeight } from "@/lib/format";
@@ -18,13 +19,20 @@ export function FarmWidgets() {
   const active = population.reduce((sum, row) => sum + row.heads, 0);
 
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
+    <div className="space-y-3">
+      <HealthAlertBanner book={book} />
+      <div className="grid gap-3 lg:grid-cols-3">
       <Card>
         <CardTitle
           action={
-            <Link href="/kandang" className="text-sm font-medium text-forest-800">
-              Kandang
-            </Link>
+            <span className="flex gap-3">
+              <Link href="/livestock/health" className="inline-flex min-h-11 items-center text-sm font-medium text-forest-800">
+                Kesehatan
+              </Link>
+              <Link href="/kandang" className="inline-flex min-h-11 items-center text-sm font-medium text-forest-800">
+                Kandang
+              </Link>
+            </span>
           }
         >
           Populasi ternak
@@ -59,7 +67,10 @@ export function FarmWidgets() {
           </div>
         </dl>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Masih tersedia {formatWeight(intake.availableKg)} untuk dikemas. Perkiraan harian dari bobot hidup {formatWeight(intake.expectedDailyKg)}.
+          Masih tersedia {formatWeight(intake.availableKg)} untuk dikemas. Perkiraan harian {formatWeight(intake.expectedDailyKg)}.
+          {intake.withheldDailyKg > 0
+            ? ` ${formatWeight(intake.withheldDailyKg)} dari ${intake.withheldHeads} ekor sakit atau karantina tidak dihitung.`
+            : ""}
         </p>
       </Card>
       <Card>
@@ -83,6 +94,7 @@ export function FarmWidgets() {
           </ul>
         )}
       </Card>
+      </div>
     </div>
   );
 }

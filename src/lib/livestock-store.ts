@@ -1,3 +1,5 @@
+import { parseHealthLogs } from "@/lib/health";
+import { parseMedicalHistory, parseTreatmentCases } from "@/lib/treatment";
 import { createLivestockSeed, type Animal, type AnimalGender, type LivestockBook, type LivestockSpecies, type ProductionBatch } from "@/lib/livestock";
 import { noteLedgerWrite } from "@/lib/ledger-bus";
 
@@ -41,6 +43,9 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     animals?: Animal[];
     waste?: LivestockBook["waste"];
     batches?: ProductionBatch[];
+    healthLogs?: unknown;
+    treatmentCases?: unknown;
+    medicalHistory?: unknown;
   };
   if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.pens) || !Array.isArray(parsed.animals) || !Array.isArray(parsed.waste)) {
     return null;
@@ -51,6 +56,9 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     animals: parsed.animals.map((item) => migrateAnimal(item)),
     waste: parsed.waste,
     batches: Array.isArray(parsed.batches) ? parsed.batches : [],
+    healthLogs: parseHealthLogs(parsed.healthLogs),
+    treatmentCases: parseTreatmentCases(parsed.treatmentCases),
+    medicalHistory: parseMedicalHistory(parsed.medicalHistory),
   };
 }
 
@@ -94,6 +102,18 @@ export function getLivestockClient() {
   }
   if (!Array.isArray(memory.batches)) {
     memory = { ...memory, batches: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.healthLogs)) {
+    memory = { ...memory, healthLogs: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.treatmentCases)) {
+    memory = { ...memory, treatmentCases: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.medicalHistory)) {
+    memory = { ...memory, medicalHistory: [] };
     wroteInitial = false;
   }
   if (!wroteInitial) {

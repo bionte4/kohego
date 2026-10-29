@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
+import { HealthAlertBanner } from "@/components/kandang/health-alert-banner";
 import { HerdPanel } from "@/components/kandang/herd-panel";
 import { ProductionPanel } from "@/components/kandang/production-panel";
 import { WastePanel } from "@/components/kandang/waste-panel";
@@ -30,6 +32,7 @@ import { guard } from "@/lib/guard";
 import { packageUnitLabel } from "@/lib/labels";
 import { settleProduction } from "@/lib/production";
 import type { VariantId } from "@/lib/types";
+import { buttonClass } from "@/components/ui/button";
 import { cn, uid } from "@/lib/utils";
 
 type Tab = "ternak" | "bahan" | "produksi";
@@ -184,9 +187,15 @@ export function LivestockView() {
 
   return (
     <div className="space-y-4">
-      <p className="max-w-2xl text-sm leading-6 text-slate-600">
-        {heads} ekor di kandang{sold > 0 ? `, ${sold} ekor terjual` : ""}. {formatWeight(raw)} kohe segar masih bisa dikemas ke stok pupuk.
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+          {heads} ekor di kandang{sold > 0 ? `, ${sold} ekor terjual` : ""}. {formatWeight(raw)} kohe segar masih bisa dikemas ke stok pupuk.
+        </p>
+        <Link href="/livestock/health" className={buttonClass("secondary", "shrink-0")}>
+          Kesehatan ternak
+        </Link>
+      </div>
+      <HealthAlertBanner book={data} />
       <div className="flex flex-wrap gap-2">
         <TabButton active={tab === "ternak"} onClick={() => setTab("ternak")}>
           Ternak
