@@ -6,11 +6,12 @@ import { useAuth } from "@/components/access/role-provider";
 import { ROLE_LABEL, type Role } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 
-const ROLE_ORDER: Role[] = ["SUPER_ADMIN", "FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"];
+const ROLE_ORDER: Role[] = ["SUPER_ADMIN", "FARM_MANAGER", "FARM_KEEPER", "WAREHOUSE_ADMIN", "FIELD_SALES"];
 
 const ROLE_HINT: Record<Role, string> = {
   SUPER_ADMIN: "Hulu, konversi, penjualan, dan kanal",
   FARM_MANAGER: "Ternak, kesehatan, dan kohe",
+  FARM_KEEPER: "Pemeriksaan, jadwal pengobatan, dan kohe",
   WAREHOUSE_ADMIN: "Stok kemasan dan batch produksi",
   FIELD_SALES: "Pesanan dan mitra wilayah",
 };
@@ -18,6 +19,7 @@ const ROLE_HINT: Record<Role, string> = {
 const ROLE_DOT: Record<Role, string> = {
   SUPER_ADMIN: "bg-forest-800",
   FARM_MANAGER: "bg-earth-800",
+  FARM_KEEPER: "bg-earth-700",
   WAREHOUSE_ADMIN: "bg-earth-700",
   FIELD_SALES: "bg-forest-700",
 };

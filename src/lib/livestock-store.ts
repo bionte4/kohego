@@ -1,7 +1,7 @@
 import { parseHealthLogs } from "@/lib/health";
 import { parseScheduledTreatments } from "@/lib/medical-schedule";
 import { parseMedicalHistory, parseTreatmentCases } from "@/lib/treatment";
-import { createLivestockSeed, type Animal, type AnimalGender, type LivestockBook, type LivestockSpecies, type ProductionBatch } from "@/lib/livestock";
+import { createLivestockSeed, isLifeStage, type Animal, type AnimalGender, type FeedLog, type LivestockBook, type LivestockSpecies, type ProductionBatch, type WeightCheck } from "@/lib/livestock";
 import { noteLedgerWrite } from "@/lib/ledger-bus";
 
 export const LIVESTOCK_KEY = "kohego.livestock.v1";
@@ -33,6 +33,9 @@ function migrateAnimal(raw: Partial<Animal> & Pick<Animal, "id" | "earTag" | "sp
     health: raw.health,
     note: raw.note,
     updatedAt: raw.updatedAt,
+    stage: isLifeStage(raw.stage) ? raw.stage : "dewasa",
+    sireTag: typeof raw.sireTag === "string" && raw.sireTag.trim() ? raw.sireTag.trim().toUpperCase() : null,
+    damTag: typeof raw.damTag === "string" && raw.damTag.trim() ? raw.damTag.trim().toUpperCase() : null,
   };
 }
 
@@ -48,6 +51,8 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     treatmentCases?: unknown;
     medicalHistory?: unknown;
     scheduledTreatments?: unknown;
+    weightChecks?: unknown;
+    feedLogs?: unknown;
   };
   if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.pens) || !Array.isArray(parsed.animals) || !Array.isArray(parsed.waste)) {
     return null;
@@ -62,7 +67,31 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     treatmentCases: parseTreatmentCases(parsed.treatmentCases),
     medicalHistory: parseMedicalHistory(parsed.medicalHistory),
     scheduledTreatments: parseScheduledTreatments(parsed.scheduledTreatments),
+    weightChecks: parseWeightChecks(parsed.weightChecks),
+    feedLogs: parseFeedLogs(parsed.feedLogs),
   };
+}
+
+function parseWeightChecks(input: unknown): WeightCheck[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Partial<WeightCheck>;
+    if (typeof row.id !== "string" || typeof row.earTag !== "string" || typeof row.weighedOn !== "string") return [];
+    if (typeof row.weightKg !== "number" || !Number.isFinite(row.weightKg)) return [];
+    return [{ id: row.id, earTag: row.earTag, weighedOn: row.weighedOn, weightKg: row.weightKg }];
+  });
+}
+
+function parseFeedLogs(input: unknown): FeedLog[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Partial<FeedLog>;
+    if (typeof row.id !== "string" || typeof row.earTag !== "string" || typeof row.fedOn !== "string") return [];
+    if (typeof row.feedKg !== "number" || !Number.isFinite(row.feedKg)) return [];
+    return [{ id: row.id, earTag: row.earTag, fedOn: row.fedOn, feedKg: row.feedKg }];
+  });
 }
 
 export function loadLivestock(): LivestockBook {
@@ -121,6 +150,18 @@ export function getLivestockClient() {
   }
   if (!Array.isArray(memory.scheduledTreatments)) {
     memory = { ...memory, scheduledTreatments: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.weightChecks)) {
+    memory = { ...memory, weightChecks: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.feedLogs)) {
+    memory = { ...memory, feedLogs: [] };
+    wroteInitial = false;
+  }
+  if (memory.animals.some((animal) => !animal.stage)) {
+    memory = parseLivestockBook(memory) ?? memory;
     wroteInitial = false;
   }
   if (!wroteInitial) {

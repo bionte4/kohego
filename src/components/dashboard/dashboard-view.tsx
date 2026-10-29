@@ -34,12 +34,12 @@ export function DashboardView() {
     return <p className="text-sm text-slate-500">Menyiapkan data penjualan...</p>;
   }
   const topRevenue = metrics.topPartners[0]?.revenue ?? 1;
-  const showFarm = role === "FARM_MANAGER" || role === "SUPER_ADMIN";
+  const showFarm = role === "FARM_MANAGER" || role === "FARM_KEEPER" || role === "SUPER_ADMIN";
   const showWarehouse = role === "WAREHOUSE_ADMIN" || role === "SUPER_ADMIN";
   const showSales = role === "FIELD_SALES" || role === "SUPER_ADMIN" || role === null;
   const showPublisher = role === "SUPER_ADMIN";
   const intro =
-    role === "FARM_MANAGER"
+    role === "FARM_MANAGER" || role === "FARM_KEEPER"
       ? "Populasi, kesehatan, dan kohe yang masih bisa dikemas."
       : role === "WAREHOUSE_ADMIN"
         ? "Stok kemasan, batch konversi, dan pesanan yang belum lunas."

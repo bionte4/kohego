@@ -1,8 +1,8 @@
-export const ROLES = ["SUPER_ADMIN", "FARM_MANAGER", "FIELD_SALES", "WAREHOUSE_ADMIN"] as const;
+export const ROLES = ["SUPER_ADMIN", "FARM_MANAGER", "FARM_KEEPER", "FIELD_SALES", "WAREHOUSE_ADMIN"] as const;
 
 export type Role = (typeof ROLES)[number];
 
-export const RESOURCES = ["livestock", "inventory", "orders", "partners", "production", "users", "sites", "catalog"] as const;
+export const RESOURCES = ["livestock", "inventory", "orders", "partners", "production", "users", "sites", "catalog", "payroll"] as const;
 
 export type Resource = (typeof RESOURCES)[number];
 
@@ -13,6 +13,7 @@ export type CrudAction = (typeof CRUD_ACTIONS)[number];
 export const ROLE_LABEL: Record<Role, string> = {
   SUPER_ADMIN: "Super admin",
   FARM_MANAGER: "Manajer kandang",
+  FARM_KEEPER: "Petugas kandang",
   FIELD_SALES: "Penjualan lapangan",
   WAREHOUSE_ADMIN: "Admin gudang",
 };
@@ -26,6 +27,7 @@ const RESOURCE_LABEL: Record<Resource, string> = {
   users: "pengguna",
   sites: "gudang asal",
   catalog: "kemasan",
+  payroll: "penggajian",
 };
 
 const ACTION_LABEL: Record<CrudAction, string> = {
@@ -41,9 +43,10 @@ const READ: readonly CrudAction[] = ["read"];
 /**
  * FIELD_SALES writes orders and partners.
  * FARM_MANAGER writes the herd, fresh kohe, and origin warehouses.
+ * FARM_KEEPER records checks, treatments, and fresh kohe, and cannot delete animals.
  * WAREHOUSE_ADMIN writes packaged stock, packaging variants, and conversion batches.
- * SUPER_ADMIN writes every resource.
- * Other roles may still read, so the dasbor and tables stay visible.
+ * SUPER_ADMIN writes every resource, including payroll.
+ * Other roles may still read operational books. Payroll stays with the super admin.
  */
 const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
   SUPER_ADMIN: {
@@ -55,6 +58,7 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     users: ALL,
     sites: ALL,
     catalog: ALL,
+    payroll: ALL,
   },
   FARM_MANAGER: {
     livestock: ALL,
@@ -65,6 +69,18 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     users: READ,
     sites: ALL,
     catalog: READ,
+    payroll: [],
+  },
+  FARM_KEEPER: {
+    livestock: ["create", "read", "update"],
+    inventory: [],
+    orders: [],
+    partners: [],
+    production: [],
+    users: [],
+    sites: READ,
+    catalog: [],
+    payroll: [],
   },
   FIELD_SALES: {
     livestock: READ,
@@ -75,6 +91,7 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     users: READ,
     sites: READ,
     catalog: READ,
+    payroll: [],
   },
   WAREHOUSE_ADMIN: {
     livestock: READ,
@@ -85,6 +102,7 @@ const MATRIX: Record<Role, Record<Resource, readonly CrudAction[]>> = {
     users: READ,
     sites: READ,
     catalog: ALL,
+    payroll: [],
   },
 };
 

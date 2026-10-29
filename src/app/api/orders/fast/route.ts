@@ -4,7 +4,7 @@ import { parseOrderDraft } from "@/lib/crud-parse";
 import { applyOrder } from "@/lib/mutations";
 import { orderKilograms, orderRevenue } from "@/lib/order-math";
 import { getDb } from "@/lib/social/db";
-import { authorize } from "@/lib/session";
+import { authorize, readSession } from "@/lib/session";
 import { parseSalesBook } from "@/lib/storage";
 import type { FastOrderReceipt } from "@/lib/types";
 
@@ -45,7 +45,9 @@ export async function POST(request: Request) {
   const book = parseSalesBook(body.book ?? current?.payload);
   if (!book) return Response.json({ message: "Buku penjualan tidak valid." }, { status: 400 });
 
-  const result = applyOrder(book, parsed.value);
+  const session = await readSession();
+  const agentId = session?.role === "FIELD_SALES" ? session.userId : null;
+  const result = applyOrder(book, parsed.value, new Date(), agentId);
   if (!result.ok) return Response.json({ message: result.message }, { status: 400 });
 
   const payload = JSON.parse(JSON.stringify(result.data)) as Prisma.InputJsonValue;

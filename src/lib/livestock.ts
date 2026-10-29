@@ -2,6 +2,7 @@ import { PRODUCTS } from "@/lib/catalog";
 import { herdStatusForCheck, seedHealthLogs, type HealthLog } from "@/lib/health";
 import { seedScheduledTreatments, type ScheduledTreatment } from "@/lib/medical-schedule";
 import type { MedicalHistoryEntry, TreatmentCase } from "@/lib/treatment";
+import { saleBlockedMessage } from "@/lib/withdrawal";
 import type { Product, ProductFamilyId, VariantId } from "@/lib/types";
 
 export type LivestockSpecies = "sapi" | "kambing" | "ayam" | "bebek";
@@ -10,6 +11,19 @@ export type AnimalGender = "jantan" | "betina" | "campuran";
 
 /** Clinical state plus sale. Terjual leaves the pen and stops new kohe. */
 export type HealthStatus = "sehat" | "pantau" | "sakit" | "karantina" | "terjual";
+
+/** Pedet grows into dewasa. Afkir is the last stage and is not reversed. */
+export type LifeStage = "pedet" | "dewasa" | "culling";
+
+export const STAGE_LABEL: Record<LifeStage, string> = {
+  pedet: "Pedet",
+  dewasa: "Dewasa",
+  culling: "Afkir",
+};
+
+export function isLifeStage(value: unknown): value is LifeStage {
+  return value === "pedet" || value === "dewasa" || value === "culling";
+}
 
 export type WasteStatus = "tersedia" | "masuk_produksi";
 
@@ -41,6 +55,9 @@ export interface Animal {
   health: HealthStatus;
   note: string;
   updatedAt: string;
+  stage: LifeStage;
+  sireTag: string | null;
+  damTag: string | null;
 }
 
 /**
@@ -82,6 +99,22 @@ export interface LivestockBook {
   treatmentCases: TreatmentCase[];
   medicalHistory: MedicalHistoryEntry[];
   scheduledTreatments: ScheduledTreatment[];
+  weightChecks: WeightCheck[];
+  feedLogs: FeedLog[];
+}
+
+export interface WeightCheck {
+  id: string;
+  earTag: string;
+  weighedOn: string;
+  weightKg: number;
+}
+
+export interface FeedLog {
+  id: string;
+  earTag: string;
+  fedOn: string;
+  feedKg: number;
 }
 
 export interface AnimalDraft {
@@ -259,9 +292,38 @@ export function createLivestockSeed(): LivestockBook {
     waste,
     batches: [],
     healthLogs,
-    treatmentCases: [],
+    treatmentCases: [
+      {
+        id: "kas-kmb-033",
+        healthLogId: "hlt-kmb-033",
+        earTag: "KMB-033",
+        protocolId: "lesu-pincang",
+        status: "terbuka",
+        openedAt: "2026-10-28T02:00:00.000Z",
+        closedAt: null,
+        doses: [
+          {
+            id: "dos-kmb-033",
+            medicineId: "elektrolit",
+            medicineName: "Elektrolit",
+            amount: "1 liter larutan",
+            note: "Hari henti mengikuti label.",
+            givenAt: "2026-10-28T03:00:00.000Z",
+            withdrawalDays: 7,
+          },
+        ],
+      },
+    ],
     medicalHistory: [],
     scheduledTreatments: seedScheduledTreatments(),
+    weightChecks: [
+      { id: "wgt-spi-1", earTag: "SPI-102", weighedOn: "2026-10-01", weightKg: 400 },
+      { id: "wgt-spi-2", earTag: "SPI-102", weighedOn: "2026-10-27", weightKg: 428 },
+    ],
+    feedLogs: [
+      { id: "fed-spi-1", earTag: "SPI-102", fedOn: "2026-10-01", feedKg: 84 },
+      { id: "fed-spi-2", earTag: "SPI-102", fedOn: "2026-10-14", feedKg: 84 },
+    ],
   };
 }
 
@@ -291,6 +353,9 @@ function animal(
     health,
     note,
     updatedAt: "2026-10-27T08:00:00.000Z",
+    stage: "dewasa",
+    sireTag: null,
+    damTag: null,
   };
 }
 
@@ -373,6 +438,9 @@ export function addAnimal(book: LivestockBook, draft: AnimalDraft, id: string, n
     health: draft.health,
     note: draft.note.trim().slice(0, 280),
     updatedAt: nowIso,
+    stage: "pedet",
+    sireTag: null,
+    damTag: null,
   };
   return { ok: true, id, book: { ...book, animals: [next, ...book.animals] } };
 }
@@ -380,6 +448,10 @@ export function addAnimal(book: LivestockBook, draft: AnimalDraft, id: string, n
 export function replaceAnimal(book: LivestockBook, animalId: string, draft: AnimalDraft, nowIso: string): LivestockResult {
   const current = book.animals.find((item) => item.id === animalId);
   if (!current) return { ok: false, message: "Ternak tidak ditemukan." };
+  if (draft.health === "terjual" && current.health !== "terjual") {
+    const blocked = saleBlockedMessage(dosesFor(book, current.earTag), nowIso);
+    if (blocked) return { ok: false, message: blocked };
+  }
   const earTag = draft.earTag.trim().toUpperCase();
   if (earTag.length < 3 || earTag.length > 16) return { ok: false, message: "Nomor telinga 3–16 karakter." };
   if (book.animals.some((item) => item.id !== current.id && item.earTag.toUpperCase() === earTag)) {
@@ -436,6 +508,10 @@ export function updateAnimal(
 ): LivestockResult {
   const current = book.animals.find((item) => item.id === animalId);
   if (!current) return { ok: false, message: "Ternak tidak ditemukan." };
+  if (patch.health === "terjual" && current.health !== "terjual") {
+    const blocked = saleBlockedMessage(dosesFor(book, current.earTag), nowIso);
+    if (blocked) return { ok: false, message: blocked };
+  }
   const weightKg = patch.weightKg ?? current.weightKg;
   if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 1500) {
     return { ok: false, message: "Bobot harus di atas 0 dan paling besar 1.500 kg." };
@@ -452,6 +528,10 @@ export function updateAnimal(
       ),
     },
   };
+}
+
+function dosesFor(book: LivestockBook, earTag: string) {
+  return (book.treatmentCases ?? []).filter((item) => item.earTag === earTag).flatMap((item) => item.doses);
 }
 
 export function removeAnimal(book: LivestockBook, animalId: string): LivestockResult {

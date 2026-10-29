@@ -13,6 +13,8 @@ export interface MedicineDose {
   amount: string;
   note: string;
   givenAt: string;
+  /** Days printed on the product label. Zero means no meat or milk hold. */
+  withdrawalDays?: number;
 }
 
 export interface MedicalHistoryEntry {
@@ -44,7 +46,7 @@ export function openCaseFor(cases: TreatmentCase[] | undefined, earTag: string) 
 export function recordMedicine(
   book: LivestockBook,
   animalId: string,
-  input: { medicineId: string; amount: string; note: string },
+  input: { medicineId: string; amount: string; note: string; withdrawalDays?: number },
   ids: { caseId: string; doseId: string },
   nowIso: string,
 ): { ok: true; book: LivestockBook; treatmentCase: TreatmentCase } | { ok: false; message: string } {
@@ -53,6 +55,10 @@ export function recordMedicine(
   if (animal.health === "terjual") return { ok: false, message: "Ternak yang sudah terjual tidak diobati." };
   const amount = input.amount.trim();
   if (amount.length < 1 || amount.length > 80) return { ok: false, message: "Isi jumlah obat yang diberikan, paling panjang 80 karakter." };
+  const withdrawalDays = input.withdrawalDays ?? 0;
+  if (!Number.isInteger(withdrawalDays) || withdrawalDays < 0 || withdrawalDays > 45) {
+    return { ok: false, message: "Hari henti obat mengikuti label, 0–45 hari." };
+  }
   const log = latestLog(book, animal.earTag);
   const status = log?.status ?? statusFromHerd(animal.health);
   const symptoms = log?.symptoms ?? [];
@@ -70,6 +76,7 @@ export function recordMedicine(
     amount,
     note: input.note.trim().slice(0, 280),
     givenAt: nowIso,
+    withdrawalDays,
   };
   const cases = book.treatmentCases ?? [];
   const existing = openCaseFor(cases, animal.earTag);
@@ -207,6 +214,7 @@ function parseDoses(input: unknown): MedicineDose[] {
         amount: row.amount,
         note: typeof row.note === "string" ? row.note : "",
         givenAt: row.givenAt,
+        withdrawalDays: Number.isInteger(row.withdrawalDays) && (row.withdrawalDays ?? 0) >= 0 && (row.withdrawalDays ?? 0) <= 45 ? row.withdrawalDays : 0,
       },
     ];
   });

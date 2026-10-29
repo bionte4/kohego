@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
-import { useCan } from "@/components/access/role-provider";
+import { useAuth, useCan } from "@/components/access/role-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,6 +51,7 @@ const HEALTH_RANK: Record<HealthStatus, number> = {
 export function HealthView() {
   const book = useSyncExternalStore(subscribeLivestock, getLivestockClient, getLivestockServer);
   const canUpdate = useCan("livestock", "update");
+  const { user } = useAuth();
   const [filter, setFilter] = useState<FilterId>("perhatian");
   const [checking, setChecking] = useState<Animal | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +81,7 @@ export function HealthView() {
       return;
     }
     const checkedAt = new Date().toISOString();
-    const result = setHerdHealth(current, animal.id, status, uid("hlt"), checkedAt);
+    const result = setHerdHealth(current, animal.id, status, uid("hlt"), checkedAt, user?.id);
     if (!result.ok) {
       setPendingId(null);
       setError(result.message);
@@ -204,6 +205,7 @@ export function HealthView() {
       <CheckModal
         key={checking?.id ?? "none"}
         animal={checking}
+        staffId={user?.id}
         onClose={() => setChecking(null)}
         onSaved={() => setChecking(null)}
         onError={setError}
@@ -214,11 +216,13 @@ export function HealthView() {
 
 function CheckModal({
   animal,
+  staffId,
   onClose,
   onSaved,
   onError,
 }: {
   animal: Animal | null;
+  staffId?: string;
   onClose: () => void;
   onSaved: () => void;
   onError: (message: string | null) => void;
@@ -290,6 +294,7 @@ function CheckModal({
       { temperatureC: Number(temperature), activityLevel: Number(activity), symptoms },
       uid("hlt"),
       new Date().toISOString(),
+      staffId,
     );
     if (!result.ok) {
       setPending(false);

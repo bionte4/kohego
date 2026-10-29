@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useCan } from "@/components/access/role-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { getLivestockClient, getLivestockServer, replaceLivestock, subscribeLive
 import { assistTreatment } from "@/lib/treatment-assistant";
 import { applyProtocol, closeTreatmentCase, openCaseFor, recommendationFor, recordMedicine, type MedicalHistoryEntry, type TreatmentCase } from "@/lib/treatment";
 import { SEVERITY_LABEL } from "@/lib/treatment-protocols";
+import { labelDoseNote } from "@/lib/veterinary-rules";
+import { activeHolds } from "@/lib/withdrawal";
 import { cn, uid } from "@/lib/utils";
 
 export function TreatmentDetail({ animalId }: { animalId: string }) {
@@ -22,9 +24,15 @@ export function TreatmentDetail({ animalId }: { animalId: string }) {
   const canUpdate = useCan("livestock", "update");
   const [medicineId, setMedicineId] = useState("");
   const [amount, setAmount] = useState("");
+  const [withdrawalDays, setWithdrawalDays] = useState("0");
   const [note, setNote] = useState("");
+  const [nowIso, setNowIso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setNowIso(new Date().toISOString());
+  }, []);
 
   if (!book) return <p className="text-sm text-slate-500">Menyiapkan protokol pengobatan...</p>;
   const found = recommendationFor(book, animalId);
@@ -74,7 +82,7 @@ export function TreatmentDetail({ animalId }: { animalId: string }) {
     const result = recordMedicine(
       current,
       animalId,
-      { medicineId: selectedMedicine, amount, note },
+      { medicineId: selectedMedicine, amount, note, withdrawalDays: Number(withdrawalDays || "0") },
       { caseId: existing?.id ?? uid("kasus"), doseId: uid("dosis") },
       nowIso,
     );
@@ -283,8 +291,17 @@ export function TreatmentDetail({ animalId }: { animalId: string }) {
                   <option value="lain">Tindakan lain</option>
                 </select>
               </label>
-              <Field label="Jumlah yang diberikan" hint="Contoh: 1 liter larutan, atau 1 kali oles.">
+              <p className="text-sm leading-6 text-slate-600">{labelDoseNote(found.animal.species, found.animal.weightKg)}</p>
+              {nowIso && activeHolds(book.treatmentCases.filter((item) => item.earTag === found.animal.earTag).flatMap((item) => item.doses), nowIso).length > 0 ? (
+                <p className="rounded-xl bg-earth-50 px-3 py-3 text-sm leading-6 text-earth-900">
+                  Periode henti obat masih berjalan. Susu dan daging belum boleh diedarkan.
+                </p>
+              ) : null}
+              <Field label="Jumlah yang diberikan" hint="Contoh: 1 liter larutan, atau 1 kali oles. Bukan hitungan mg/kg.">
                 <TextInput value={amount} onChange={(event) => setAmount(event.target.value)} />
+              </Field>
+              <Field label="Hari henti obat pada label" hint="Isi angka yang tercetak di label. Nol jika label tidak meminta henti obat.">
+                <TextInput inputMode="numeric" value={withdrawalDays} onChange={(event) => setWithdrawalDays(event.target.value.replace(/[^\d]/g, "").slice(0, 2))} />
               </Field>
               <Field label="Catatan" hint="Opsional.">
                 <TextInput value={note} onChange={(event) => setNote(event.target.value)} />

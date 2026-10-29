@@ -100,6 +100,10 @@ model Animal {
   opsAlerts       LivestockOpsAlert[]
   medicalHistory  LivestockMedicalHistory[]
   scheduledTreatments LivestockTreatment[]
+  lineage             LineageTracking?
+  weightChecks        LivestockWeightCheck[]
+  feedLogs            LivestockFeedLog[]
+  withdrawalHolds     WithdrawalHold[]
 
   @@index([species, health])
   @@map("animals")
@@ -294,8 +298,142 @@ model LoginCredential {
   active       Boolean  @default(true)
   passwordHash String
   updatedAt    DateTime @updatedAt
+  payrollRecords PayrollRecord[]
 
   @@map("login_credentials")
+}
+
+enum PayrollStatus {
+  PENDING
+  PAID
+}
+
+/// One employee, one calendar month. Net pay is base + commission + bonus − deductions.
+model PayrollRecord {
+  id            String        @id
+  userId        String        @map("user_id")
+  credential    LoginCredential @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  period        String
+  role          String
+  baseSalaryIdr Int           @map("base_salary_idr")
+  commissionIdr Int           @map("commission_idr")
+  bonusIdr      Int           @map("bonus_idr")
+  deductionsIdr Int           @map("deductions_idr")
+  netPayIdr     Int           @map("net_pay_idr")
+  tonnageKg     Decimal       @map("tonnage_kg") @db.Decimal(12, 3)
+  orderCount    Int           @map("order_count")
+  healthHeads   Int           @map("health_heads")
+  status        PayrollStatus @default(PENDING)
+  paidAt        DateTime?     @map("paid_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@unique([userId, period])
+  @@index([period, status])
+  @@map("payroll_records")
+}
+
+/// Parents and life stage for one ear tag. Stage moves only forward: pedet, dewasa, culling.
+model LineageTracking {
+  id        String   @id
+  earTag    String   @unique @map("ear_tag_id")
+  animal    Animal   @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  sireTag   String   @default("") @map("sire_tag")
+  damTag    String   @default("") @map("dam_tag")
+  stage     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("lineage_tracking")
+}
+
+model LivestockWeightCheck {
+  id        String   @id
+  earTag    String   @map("ear_tag_id")
+  animal    Animal   @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  weighedOn DateTime @map("weighed_on") @db.Date
+  weightKg  Decimal  @map("weight_kg") @db.Decimal(8, 1)
+
+  @@index([earTag, weighedOn])
+  @@map("livestock_weight_checks")
+}
+
+model LivestockFeedLog {
+  id     String   @id
+  earTag String   @map("ear_tag_id")
+  animal Animal   @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  fedOn  DateTime @map("fed_on") @db.Date
+  feedKg Decimal  @map("feed_kg") @db.Decimal(8, 1)
+
+  @@index([earTag, fedOn])
+  @@map("livestock_feed_logs")
+}
+
+/// One compost planning run. Finished kilograms already subtract the stated mass loss.
+model CompostRun {
+  id               String   @id
+  rawKg            Decimal  @map("raw_kg") @db.Decimal(10, 1)
+  carbonPercent    Decimal  @map("carbon_percent") @db.Decimal(5, 2)
+  nitrogenPercent  Decimal  @map("nitrogen_percent") @db.Decimal(5, 2)
+  cnRatio          Decimal  @map("cn_ratio") @db.Decimal(6, 1)
+  lossPercent      Decimal  @map("loss_percent") @db.Decimal(5, 2)
+  finishedKg       Decimal  @map("finished_kg") @db.Decimal(10, 1)
+  peakCelsius      Decimal? @map("peak_celsius") @db.Decimal(4, 1)
+  thermophilicDays Int      @map("thermophilic_days")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("compost_runs")
+}
+
+/// Open consignment suggestion for one partner and month. Invoice prices are not rewritten.
+model ConsignmentLedger {
+  id                 String   @id
+  partnerId          String   @map("partner_id")
+  period             String
+  openIdr            Int      @map("open_idr")
+  volumeKg           Decimal  @map("volume_kg") @db.Decimal(12, 3)
+  discountRate       Decimal  @map("discount_rate") @db.Decimal(5, 4)
+  suggestedCreditIdr Int      @map("suggested_credit_idr")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@unique([partnerId, period])
+  @@map("consignment_ledgers")
+}
+
+model FieldVisit {
+  id        String   @id
+  partnerId String   @map("partner_id")
+  agentId   String   @default("") @map("agent_id")
+  visitedAt DateTime @map("visited_at")
+  lat       Decimal? @db.Decimal(9, 6)
+  lng       Decimal? @db.Decimal(9, 6)
+  note      String   @default("")
+
+  @@index([partnerId, visitedAt])
+  @@map("field_visits")
+}
+
+/// Symptom to keeper-protocol checklist. Not a diagnosis and not a mg/kg dose.
+model VeterinaryRule {
+  id         String @id
+  symptom    String
+  protocolId String @map("protocol_id")
+  summary    String
+
+  @@index([symptom])
+  @@map("veterinary_rules")
+}
+
+model WithdrawalHold {
+  id           String    @id
+  earTag       String    @map("ear_tag_id")
+  animal       Animal    @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  medicineName String    @map("medicine_name")
+  startedAt    DateTime  @map("started_at")
+  untilOn      DateTime  @map("until_on") @db.Date
+  releasedAt   DateTime? @map("released_at")
+
+  @@index([earTag, untilOn])
+  @@map("withdrawal_holds")
 }
 
 /// Company books shared by every browser: sales, livestock, publisher, and staff.

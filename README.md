@@ -20,12 +20,19 @@ Database dan sambungan OAuth bersifat opsional untuk pemakaian harian. Langkahny
 
 | Halaman | Path | Isi |
 | --- | --- | --- |
-| Dasbor | `/` | Pendapatan, tonase, dan komposisi produk |
-| Pesanan cepat | `/penjualan` | Order lapangan, pembayaran, dan pelunasan |
+| Dasbor | `/dashboard` | Ringkasan sesuai peran |
+| Pesanan cepat | `/orders/fast` | Order lapangan, pembayaran, dan pelunasan |
+| Laporan keuangan | `/reports/financial` | Pendapatan, tonase, dan piutang |
+| Konsinyasi | `/reports/consignment` | Saldo terbuka, diskon tingkat, dan kunjungan |
+| Penggajian | `/reports/payroll` | Gaji, komisi, dan bonus. Super admin |
 | Inventori | `/inventori` | Stok sak dan jerigen, penerimaan, dan kirim antar gudang |
 | Mitra | `/mitra` | Toko tani, perkebunan, dan urban farmer |
 | Profil | `/profil` | Identitas agen |
 | Manajemen Kandang | `/kandang` | Ternak, kohe segar, dan produksi |
+| Kesehatan ternak | `/livestock/health` | Suhu, aktivitas, dan skor pemeriksaan |
+| Jadwal pengobatan | `/livestock/treatments` | Vaksin, vitamin, dan perawatan |
+| Silsilah ternak | `/livestock/lineage` | Tahap hidup, induk, dan FCR |
+| Kimia kompos | `/produksi/kimia` | Rasio C:N, suhu, dan susut massa |
 | Dasbor Publisher | `/publisher` | Naskah, media, jadwal, dan status kirim |
 | Akun Sosmed | `/pemasaran/akun` | Sambungan OAuth Instagram, Facebook, dan TikTok |
 | Pengguna | `/settings/users` | Staf, peran, dan status akun |
@@ -38,8 +45,9 @@ Pengganti peran di header adalah sesi lokal untuk mencoba akses. Cookie `kohego_
 
 | Peran | Yang boleh diubah |
 | --- | --- |
-| Super admin | Semua, termasuk daftar pengguna |
-| Manajer kandang | Ternak, kohe, dan gudang asal |
+| Super admin | Semua, termasuk pengguna dan penggajian |
+| Manajer kandang | Ternak, kohe, kesehatan, dan gudang asal |
+| Petugas kandang | Pemeriksaan, jadwal, silsilah, dan kohe, tanpa menghapus ternak |
 | Penjualan lapangan | Pesanan dan mitra |
 | Admin gudang | Inventori, kemasan, opname, dan produksi |
 

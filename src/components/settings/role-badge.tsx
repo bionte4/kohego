@@ -4,6 +4,7 @@ import { ROLE_LABEL, type Role } from "@/lib/rbac";
 const tones = {
   SUPER_ADMIN: "forest",
   FARM_MANAGER: "earth",
+  FARM_KEEPER: "amber",
   FIELD_SALES: "amber",
   WAREHOUSE_ADMIN: "slate",
 } as const;

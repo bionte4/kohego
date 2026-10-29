@@ -7,7 +7,7 @@ import { useAuth } from "@/components/access/role-provider";
 import { ROLE_LABEL, type Role } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 
-const ROLE_ORDER: Role[] = ["SUPER_ADMIN", "FARM_MANAGER", "WAREHOUSE_ADMIN", "FIELD_SALES"];
+const ROLE_ORDER: Role[] = ["SUPER_ADMIN", "FARM_MANAGER", "FARM_KEEPER", "WAREHOUSE_ADMIN", "FIELD_SALES"];
 
 export function AccountMenu() {
   const { role, user, switchable, switchRole, logout, switching, error } = useAuth();

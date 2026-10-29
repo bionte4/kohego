@@ -109,7 +109,7 @@ function normalizePartner(draft: PartnerDraft): { ok: true; value: Omit<Partner,
   };
 }
 
-export function applyOrder(data: AppData, draft: OrderDraft, now = new Date()): MutationResult {
+export function applyOrder(data: AppData, draft: OrderDraft, now = new Date(), agentId?: string | null): MutationResult {
   const partner = data.partners.find((item) => item.id === draft.partnerId);
   if (!partner) return { ok: false, message: "Pilih mitra terlebih dahulu." };
 
@@ -166,6 +166,7 @@ export function applyOrder(data: AppData, draft: OrderDraft, now = new Date()): 
     geo: draft.geo,
     note: draft.note.trim().slice(0, 280),
     createdAt,
+    agentId: agentId && /^[A-Za-z0-9_-]{1,80}$/.test(agentId) ? agentId : null,
   };
 
   // A sale removes packages from the shipping warehouse immediately.

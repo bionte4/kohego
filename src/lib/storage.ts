@@ -1,6 +1,7 @@
 import { PRODUCTS, packageSizeOf } from "@/lib/catalog";
 import { noteLedgerWrite } from "@/lib/ledger-bus";
 import { createSeed } from "@/lib/seed";
+import { parseVisits } from "@/lib/consignment";
 import type { AppData, Partner, Product, Warehouse } from "@/lib/types";
 
 export const STORAGE_KEY = "kohego.dashboard.v2";
@@ -72,6 +73,7 @@ export function parseSalesBook(input: unknown): AppData | null {
     warehouses,
     products: storedProducts.length > 0 ? storedProducts : PRODUCTS.map((product) => ({ ...product })),
     profile: parsed.profile as AppData["profile"],
+    visits: parseVisits(parsed.visits),
   };
 }
 
@@ -113,6 +115,10 @@ export function subscribeStore(listener: () => void) {
 export function getClientSnapshot() {
   if (!memory || memory.version !== 3 || !Array.isArray(memory.products)) {
     memory = loadState();
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.visits)) {
+    memory = { ...memory, visits: [] };
     wroteInitial = false;
   }
   if (!wroteInitial) {

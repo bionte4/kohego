@@ -75,6 +75,8 @@ export interface Order {
   geo: GeoTag | null;
   note: string;
   createdAt: string;
+  /** Field agent who booked the order. Absent on books saved before payroll attribution. */
+  agentId?: string | null;
 }
 
 export interface Warehouse {
@@ -130,6 +132,16 @@ export interface AppData {
   stock: StockLine[];
   movements: Movement[];
   profile: AgentProfile;
+  visits?: FieldVisit[];
+}
+
+export interface FieldVisit {
+  id: string;
+  partnerId: string;
+  agentId: string;
+  visitedAt: string;
+  geo: GeoTag | null;
+  note: string;
 }
 
 export interface OrderDraft {

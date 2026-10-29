@@ -20,6 +20,8 @@ export interface HealthLog {
   diagnosticNote: string;
   treatment: string;
   manual: boolean;
+  /** Staff user who recorded the check. Absent on logs saved before payroll attribution. */
+  recordedBy?: string;
 }
 
 export interface HealthAssessment {
@@ -195,6 +197,7 @@ export function recordHealthCheck(
   reading: Omit<HealthReading, "species">,
   id: string,
   checkedAt: string,
+  staffId?: string | null,
 ): { ok: true; book: LivestockBook; log: HealthLog } | { ok: false; message: string } {
   const animal = book.animals.find((item) => item.id === animalId);
   if (!animal) return { ok: false, message: "Ternak tidak ditemukan." };
@@ -221,6 +224,7 @@ export function recordHealthCheck(
     activityLevel,
     symptoms: reading.symptoms,
     manual: false,
+    recordedBy: staffIdOf(staffId),
     ...assessment,
   };
   return { ok: true, log, book: writeLog(book, animal.id, log) };
@@ -232,6 +236,7 @@ export function setHerdHealth(
   status: HealthCheckStatus,
   id: string,
   checkedAt: string,
+  staffId?: string | null,
 ): { ok: true; book: LivestockBook; log: HealthLog } | { ok: false; message: string } {
   const animal = book.animals.find((item) => item.id === animalId);
   if (!animal) return { ok: false, message: "Ternak tidak ditemukan." };
@@ -246,9 +251,14 @@ export function setHerdHealth(
     activityLevel: previous?.activityLevel ?? fallback.activityLevel,
     symptoms: previous?.symptoms ?? [],
     manual: true,
+    recordedBy: staffIdOf(staffId),
     ...manualAssessment(status),
   };
   return { ok: true, log, book: writeLog(book, animal.id, log) };
+}
+
+function staffIdOf(value: unknown) {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(value) ? value : undefined;
 }
 
 export function parseHealthLogs(input: unknown): HealthLog[] {
@@ -275,6 +285,7 @@ export function parseHealthLogs(input: unknown): HealthLog[] {
         diagnosticNote: row.diagnosticNote,
         treatment: row.treatment,
         manual: row.manual === true,
+        recordedBy: staffIdOf(row.recordedBy),
       },
     ];
   });
@@ -321,6 +332,7 @@ export function seedHealthLogs(): HealthLog[] {
       activityLevel: sample.activityLevel,
       symptoms: sample.symptoms,
       manual: false,
+      recordedBy: "usr-agus",
       ...assessment,
     };
   });
