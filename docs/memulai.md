@@ -103,6 +103,7 @@ Migrasi yang ada:
 - `20261029140000_livestock_treatments` — jadwal vaksin dan perawatan
 - `20261029150000_payroll_records` — slip gaji bulanan
 - `20261029160000_enterprise_modules` — silsilah, pakan, kompos, konsinyasi, kunjungan, dan henti obat
+- `20261029170000_compliance_standards` — RFID ternak dan acuan hari henti obat
 
 Mengganti `TOKEN_ENCRYPTION_KEY` membuat token yang sudah tersimpan tidak bisa dibaca.
 

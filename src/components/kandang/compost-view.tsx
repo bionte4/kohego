@@ -49,7 +49,7 @@ export function CompostView() {
   return (
     <div className="space-y-4">
       <p className="max-w-3xl text-sm leading-6 text-slate-600">
-        Rasio C:N yang dituju adalah 25–30. Susut massa mengurangi kohe segar menjadi pupuk jadi. Kemasan sak tetap dicatat lewat batch produksi.
+        Rasio C:N yang dituju adalah 25–30. Suhu termofilik yang dihitung adalah 55–70°C, minimal 3 catatan. Susut massa mengurangi kohe segar menjadi pupuk jadi. Kemasan sak tetap dicatat lewat batch produksi.
       </p>
       <Card>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -104,6 +104,7 @@ model Animal {
   weightChecks        LivestockWeightCheck[]
   feedLogs            LivestockFeedLog[]
   withdrawalHolds     WithdrawalHold[]
+  registry            LivestockRegistry?
 
   @@index([species, health])
   @@map("animals")
@@ -331,6 +332,31 @@ model PayrollRecord {
   @@unique([userId, period])
   @@index([period, status])
   @@map("payroll_records")
+}
+
+/// ICAR visual ear tag stays on animals. This row stores the optional 15-digit RFID (ISO 11784).
+/// Life stage stays on lineage_tracking so the two records are not edited in two places.
+model LivestockRegistry {
+  earTag    String   @id @map("ear_tag_id")
+  animal    Animal   @relation(fields: [earTag], references: [earTag], onDelete: Cascade, onUpdate: Cascade)
+  rfidTag   String   @unique @map("rfid_tag")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("livestock_registry")
+}
+
+/// Label withdrawal reference. Residue limits stay on the product label. This table does not store mg/kg doses.
+model PharmacologyStandard {
+  id             String  @id
+  medicineName   String  @map("medicine_name")
+  species        String  @default("semua")
+  withdrawalDays Int     @map("withdrawal_days")
+  blocksHarvest  Boolean @default(true) @map("blocks_harvest")
+  blocksManure   Boolean @default(true) @map("blocks_manure")
+  residueNote    String  @map("residue_note")
+
+  @@unique([medicineName, species])
+  @@map("pharmacology_standards")
 }
 
 /// Parents and life stage for one ear tag. Stage moves only forward: pedet, dewasa, culling.

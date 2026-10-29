@@ -18,6 +18,8 @@ Database dan sambungan OAuth bersifat opsional untuk pemakaian harian. Langkahny
 
 ## Modul
 
+Menu samping terbagi menjadi **Hulu**, **Konversi**, **Hilir**, **Pemasaran**, dan **Pengaturan**. Arti tiap kelompok, nama peran, dan alamat pendek ada di [docs/modul.md](docs/modul.md).
+
 | Halaman | Path | Isi |
 | --- | --- | --- |
 | Dasbor | `/dashboard` | Ringkasan sesuai peran |
@@ -31,7 +33,8 @@ Database dan sambungan OAuth bersifat opsional untuk pemakaian harian. Langkahny
 | Manajemen Kandang | `/kandang` | Ternak, kohe segar, dan produksi |
 | Kesehatan ternak | `/livestock/health` | Suhu, aktivitas, dan skor pemeriksaan |
 | Jadwal pengobatan | `/livestock/treatments` | Vaksin, vitamin, dan perawatan |
-| Silsilah ternak | `/livestock/lineage` | Tahap hidup, induk, dan FCR |
+| Silsilah ternak | `/livestock/lineage` | Tahap hidup, induk, FCR, dan RFID |
+| Kepatuhan | `/reports/compliance` | Karantina, henti obat, dan mutu kompos |
 | Kimia kompos | `/produksi/kimia` | Rasio C:N, suhu, dan susut massa |
 | Dasbor Publisher | `/publisher` | Naskah, media, jadwal, dan status kirim |
 | Akun Sosmed | `/pemasaran/akun` | Sambungan OAuth Instagram, Facebook, dan TikTok |

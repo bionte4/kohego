@@ -12,7 +12,7 @@ export interface WithdrawalHold {
 
 /**
  * A withdrawal window is the number of days printed on the product label.
- * Meat and milk stay locked until that date. This does not calculate a dose.
+ * Meat, milk, and fresh manure stay locked until that date. This does not calculate a dose.
  */
 export function activeHolds(doses: WithdrawalDose[], nowIso: string): WithdrawalHold[] {
   const now = new Date(nowIso).getTime();
@@ -33,4 +33,11 @@ export function saleBlockedMessage(doses: WithdrawalDose[], nowIso: string) {
   const first = holds[0];
   if (!first) return null;
   return `Periode henti obat sampai ${first.until}. Susu dan daging ${first.medicineName} belum boleh diedarkan.`;
+}
+
+export function manureBlockedMessage(doses: WithdrawalDose[], nowIso: string, earTag: string) {
+  const holds = activeHolds(doses, nowIso);
+  const first = holds[0];
+  if (!first) return null;
+  return `Periode henti obat sampai ${first.until}. Kohe ${earTag} belum boleh dikumpulkan untuk kompos.`;
 }

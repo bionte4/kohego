@@ -18,7 +18,7 @@ Matriksnya ada di `src/lib/rbac.ts`. Tulisan di bawah ini yang berlaku untuk ant
 
 "Ubah" mencakup buat, ubah, dan hapus. "Catat" untuk petugas kandang berarti buat dan ubah ternak, pemeriksaan, serta kohe, tanpa menghapus ternak. "Baca" cukup untuk membuka tabel. Tanda "—" berarti menu dan API menolak.
 
-Menu petugas kandang: dasbor, kandang, kesehatan, jadwal pengobatan, silsilah, dan profil. Penggajian hanya tampil untuk super admin.
+Menu petugas kandang ada di **Hulu** (dasbor, kandang, kesehatan, jadwal pengobatan, silsilah, kepatuhan) dan **Hilir** (profil). Penggajian, di kelompok **Pengaturan**, hanya tampil untuk super admin. Arti kelompok menu ada di [modul.md](modul.md).
 
 ## Sesi
 
@@ -46,6 +46,8 @@ Route di bawah memeriksa peran sebelum menerima badan permintaan.
 | POST | `/api/livestock/treatment/assist` | Saran daftar periksa kandang |
 | POST | `/api/livestock/treatments` | Jadwal vaksin dan perawatan |
 | POST | `/api/livestock/lineage` | Silsilah dan tahap hidup |
+| POST | `/api/livestock/registry` | RFID 15 digit pada satu nomor telinga |
+| GET | `/api/reports/compliance` | Acuan henti obat dan target kompos |
 | GET, POST | `/api/livestock/withdrawal` | Aturan gejala dan periode henti obat |
 | GET, POST, PATCH, DELETE | `/api/users` | Staf |
 | POST | `/api/access` | Pemeriksaan umum `{ resource, action }` |

@@ -2,6 +2,41 @@
 
 Buku kerja harian ada di browser. Server memeriksa peran dan, kalau database terpasang, menyimpan buku bersama, token, batch produksi, serta rekap gaji.
 
+## Istilah
+
+Menu samping memakai lima kelompok. Bilah bawah layar kecil tetap **Pesanan**, **Stok**, **Mitra**, dan **Profil**.
+
+| Istilah | Arti di aplikasi |
+| --- | --- |
+| Hulu | Dasbor, manajemen kandang, kesehatan ternak, jadwal pengobatan, dan silsilah |
+| Konversi | Inventori kemasan dan kimia kompos |
+| Hilir | Pesanan cepat, mitra, profil agen, dan konsinyasi |
+| Pemasaran | Publisher sosmed dan akun OAuth |
+| Pengaturan | Laporan keuangan, penggajian, dan pengguna |
+| Kohe | Kotoran segar di kandang, sebelum masuk gudang sebagai kemasan |
+| Sak | Kemasan pupuk padat |
+| Jerigen | Kemasan POC |
+| Konsinyasi | Nota yang sak-nya sudah keluar dan masih terbuka |
+| FCR | Kilogram pakan dibagi kenaikan bobot antara dua tanggal timbang |
+| Henti obat | Jumlah hari yang tercetak di label. Selama jendela itu, ternak tidak ditandai terjual |
+| Afkir | Tahap hidup terakhir pada silsilah: Pedet, lalu Dewasa, lalu Afkir |
+| RFID | Nomor 15 digit pada tag elektronik. Nomor telinga visual tetap terpisah |
+| Kepatuhan | Karantina, henti obat, RFID, dan target kompos di `/reports/compliance` |
+| Petugas kandang | Peran `FARM_KEEPER` |
+| Manajer kandang | Peran `FARM_MANAGER` |
+| Penjualan lapangan | Peran `FIELD_SALES` |
+| Admin gudang | Peran `WAREHOUSE_ADMIN` |
+
+Alamat pendek membuka halaman yang sama:
+
+| Alamat | Halaman |
+| --- | --- |
+| `/livestock` | `/kandang` |
+| `/conversion` | `/produksi/kimia` |
+| `/inventory` | `/inventori` |
+| `/marketing/publisher` dan `/pemasaran` | `/publisher` |
+| `/settings/roles` | `/settings/users` |
+
 ## Penyimpanan perangkat
 
 | Kunci | Isi |
@@ -18,7 +53,7 @@ Harga dan bobot pada baris pesanan disalin saat pesanan disimpan, jadi perubahan
 
 ## Dasbor dan penjualan
 
-Dasbor membaca pesanan dan stok yang sama dengan halaman pesanan. Isi dasbor mengikuti peran: kandang untuk manajer dan petugas, gudang untuk admin gudang, penjualan untuk petugas lapangan, dan semuanya untuk super admin.
+Dasbor membaca pesanan dan stok yang sama dengan halaman pesanan. Isi dasbor mengikuti peran: kandang untuk manajer kandang dan petugas kandang, gudang untuk admin gudang, penjualan untuk penjualan lapangan, dan semuanya untuk super admin.
 
 Konsinyasi mengurangi sisa plafon mitra sampai ditandai lunas. Pelunasan tidak menggerakkan stok lagi, karena sak sudah keluar saat pesanan disimpan. Pembatalan pesanan mengembalikan kemasan ke gudang asal dan menghapus pergerakan jual pesanan itu.
 
@@ -52,7 +87,7 @@ Bebek tidak punya SKU pupuk padat. Konversinya lewat POC.
 
 Daftar periksa pengobatan memakai gejala yang sudah dicatat. Takaran adalah rentang perencanaan pada label untuk spesies itu. Aplikasi tidak menghitung mg/kg antibiotik.
 
-Periode henti obat memakai jumlah hari yang tercetak di label. Selama jendela itu masih berjalan, ternak tidak bisa ditandai terjual. Contoh pada buku baru: KMB-033 terkunci sampai tanggal henti obatnya lewat.
+Periode henti obat memakai jumlah hari yang tercetak di label. Selama jendela itu masih berjalan, ternak tidak bisa ditandai terjual dan kohe-nya tidak bisa dikumpulkan untuk kompos. Contoh pada buku baru: KMB-033 terkunci sampai tanggal henti obatnya lewat. Halaman `/reports/compliance` merangkum karantina, kunci itu, RFID yang belum terpasang, dan target C:N 25–30 serta suhu 55–70°C.
 
 ### Silsilah dan FCR
 

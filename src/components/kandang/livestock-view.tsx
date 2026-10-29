@@ -119,7 +119,8 @@ export function LivestockView() {
     if (!row) return "Catatan kohe tidak ditemukan.";
     const plan = planWastePack(row, variant, qty, sales.products);
     if (!plan.ok) return plan.message;
-    const issued = issueWaste(current, wasteId, plan.freshKg);
+    const nowIso = new Date().toISOString();
+    const issued = issueWaste(current, wasteId, plan.freshKg, nowIso);
     if (!issued.ok) return issued.message;
     const source = current.animals.find((animal) => animal.id === row.animalId);
     const product = productById(variant, sales.products);
@@ -133,7 +134,7 @@ export function LivestockView() {
     if (!receipt.ok) return receipt.message;
     const latest = getLivestockClient();
     if (!latest) return "Data kandang belum siap.";
-    const savedIssue = issueWaste(latest, wasteId, plan.freshKg);
+    const savedIssue = issueWaste(latest, wasteId, plan.freshKg, nowIso);
     if (!savedIssue.ok) return savedIssue.message;
     return commit(savedIssue);
   }

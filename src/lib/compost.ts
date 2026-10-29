@@ -1,3 +1,12 @@
+/** Target band used by the mass-balance check. 25:1–30:1 and 55–70°C for at least three readings. */
+export const COMPOST_STANDARD = {
+  cnMin: 25,
+  cnMax: 30,
+  thermophilicMinC: 55,
+  thermophilicMaxC: 70,
+  thermophilicDays: 3,
+} as const;
+
 export interface CompostReading {
   day: number;
   celsius: number;
@@ -18,8 +27,9 @@ export interface CompostBalance {
 }
 
 /**
- * Carbon divided by nitrogen. A compost pile is aimed at 25:1 to 30:1.
+ * Carbon divided by nitrogen. The target band is 25:1 to 30:1.
  * Below 20 the pile is too rich in nitrogen. Above 40 it stays cool and slow.
+ * A thermophilic reading sits between 55°C and 70°C. Three such readings mark a held hot phase.
  * Finished mass is raw intake times the share that remains after the stated loss.
  */
 export function compostBalance(input: {
@@ -51,11 +61,27 @@ export function compostBalance(input: {
     }
   }
   const ratio = Math.round((carbonPercent / nitrogenPercent) * 10) / 10;
-  const ratioLabel = ratio < 20 ? "Terlalu banyak nitrogen" : ratio <= 30 ? "Sesuai target 25–30" : ratio <= 40 ? "Agak tinggi" : "Terlalu tinggi, proses lambat";
+  const ratioLabel =
+    ratio < 20
+      ? "Terlalu banyak nitrogen"
+      : ratio < COMPOST_STANDARD.cnMin
+        ? "Di bawah target 25–30"
+        : ratio <= COMPOST_STANDARD.cnMax
+          ? "Sesuai target 25–30"
+          : ratio <= 40
+            ? "Agak tinggi"
+            : "Terlalu tinggi, proses lambat";
   const finishedKg = Math.round(rawKg * (1 - lossPercent / 100) * 10) / 10;
-  const hot = readings.filter((item) => item.celsius >= 55 && item.celsius <= 65);
+  const hot = readings.filter(
+    (item) => item.celsius >= COMPOST_STANDARD.thermophilicMinC && item.celsius <= COMPOST_STANDARD.thermophilicMaxC,
+  );
   const peak = readings.reduce<number | null>((best, item) => (best === null || item.celsius > best ? item.celsius : best), null);
-  const curveLabel = hot.length >= 3 ? "Fase termofilik tercapai" : hot.length > 0 ? "Suhu termofilik belum bertahan" : "Belum masuk fase termofilik";
+  const curveLabel =
+    hot.length >= COMPOST_STANDARD.thermophilicDays
+      ? "Fase termofilik tercapai"
+      : hot.length > 0
+        ? "Suhu termofilik belum bertahan"
+        : "Belum masuk fase termofilik";
   return {
     ok: true,
     value: {

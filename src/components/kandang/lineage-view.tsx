@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { controlClass } from "@/components/ui/field";
 import { feedConversion, recordFeed, recordWeight, setLineage } from "@/lib/lineage";
-import { STAGE_LABEL, type LifeStage } from "@/lib/livestock";
+import { assignRfid, STAGE_LABEL, type LifeStage } from "@/lib/livestock";
 import { getLivestockClient, getLivestockServer, replaceLivestock, subscribeLivestock } from "@/lib/livestock-store";
 import { activeHolds } from "@/lib/withdrawal";
 import { uid } from "@/lib/utils";
@@ -23,12 +23,19 @@ export function LineageView() {
   const [weightKg, setWeightKg] = useState("");
   const [fedOn, setFedOn] = useState("");
   const [feedKg, setFeedKg] = useState("");
+  const [rfid, setRfid] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [nowIso, setNowIso] = useState<string | null>(null);
 
   useEffect(() => {
     setNowIso(new Date().toISOString());
   }, []);
+
+  useEffect(() => {
+    const herd = book?.animals.filter((animal) => animal.health !== "terjual") ?? [];
+    const selected = herd.find((animal) => animal.id === animalId) ?? herd[0];
+    setRfid(selected?.rfid ?? "");
+  }, [book, animalId]);
 
   if (!book) return <p className="text-sm text-slate-500">Menyiapkan silsilah...</p>;
   const herd = book.animals.filter((animal) => animal.health !== "terjual");
@@ -59,6 +66,24 @@ export function LineageView() {
     }
     setError(null);
     replaceLivestock(result.book);
+  }
+
+  function saveRfid() {
+    if (!book || !selected) return;
+    const result = assignRfid(book, selected.id, rfid, new Date().toISOString());
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setError(null);
+    replaceLivestock(result.book);
+    const tag = rfid.trim();
+    if (!tag) return;
+    void fetch("/api/livestock/registry", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ earTag: selected.earTag, rfid: tag }),
+    });
   }
 
   function saveFeed() {
@@ -93,6 +118,7 @@ export function LineageView() {
                 <p className="mt-2 text-sm text-slate-600">
                   Induk {animal.damTag ?? "—"} · Pejantan {animal.sireTag ?? "—"}
                 </p>
+                <p className="mt-1 text-sm text-slate-600">RFID {animal.rfid || "belum terpasang"}</p>
                 <p className="mt-1 text-sm text-slate-600">{ratio.detail}</p>
               </Card>
             </li>
@@ -129,6 +155,11 @@ export function LineageView() {
             </label>
           </div>
           <Button className="mt-4" onClick={saveLineage}>Simpan silsilah</Button>
+          <label className="mt-4 block text-sm font-medium text-ink">
+            RFID 15 digit
+            <input inputMode="numeric" className={`${controlClass} mt-1.5`} value={rfid} onChange={(event) => setRfid(event.target.value)} />
+          </label>
+          <Button className="mt-4" variant="secondary" onClick={saveRfid}>Simpan RFID</Button>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium text-ink">
               Tanggal timbang

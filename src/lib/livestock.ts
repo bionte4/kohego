@@ -2,7 +2,8 @@ import { PRODUCTS } from "@/lib/catalog";
 import { herdStatusForCheck, seedHealthLogs, type HealthLog } from "@/lib/health";
 import { seedScheduledTreatments, type ScheduledTreatment } from "@/lib/medical-schedule";
 import type { MedicalHistoryEntry, TreatmentCase } from "@/lib/treatment";
-import { saleBlockedMessage } from "@/lib/withdrawal";
+import { isIcarRfid } from "@/lib/identification";
+import { manureBlockedMessage, saleBlockedMessage } from "@/lib/withdrawal";
 import type { Product, ProductFamilyId, VariantId } from "@/lib/types";
 
 export type LivestockSpecies = "sapi" | "kambing" | "ayam" | "bebek";
@@ -58,6 +59,8 @@ export interface Animal {
   stage: LifeStage;
   sireTag: string | null;
   damTag: string | null;
+  /** 15-digit ISO 11784 RFID. Empty until a tag is assigned. */
+  rfid: string;
 }
 
 /**
@@ -261,7 +264,7 @@ export function createLivestockSeed(): LivestockBook {
   ];
 
   const animals: Animal[] = [
-    animal("ani-spi-102", "SPI-102", "sapi", "Limousin", "jantan", "2022-04-12", "pen-sapi", 428, 1, "sehat", ""),
+    animal("ani-spi-102", "SPI-102", "sapi", "Limousin", "jantan", "2022-04-12", "pen-sapi", 428, 1, "sehat", "", "360000000000102"),
     animal("ani-spi-118", "SPI-118", "sapi", "Peranakan Ongole", "betina", "2021-11-03", "pen-sapi", 361, 1, "pantau", "Nafsu makan turun."),
     animal("ani-kmb-014", "KMB-014", "kambing", "Etawa", "betina", "2023-06-18", "pen-kambing", 34, 1, "sehat", ""),
     animal("ani-kmb-021", "KMB-021", "kambing", "Etawa", "jantan", "2023-02-09", "pen-kambing", 29, 1, "sehat", ""),
@@ -339,6 +342,7 @@ function animal(
   headcount: number,
   health: HealthStatus,
   note: string,
+  rfid = "",
 ): Animal {
   return {
     id,
@@ -356,6 +360,7 @@ function animal(
     stage: "dewasa",
     sireTag: null,
     damTag: null,
+    rfid,
   };
 }
 
@@ -441,6 +446,7 @@ export function addAnimal(book: LivestockBook, draft: AnimalDraft, id: string, n
     stage: "pedet",
     sireTag: null,
     damTag: null,
+    rfid: "",
   };
   return { ok: true, id, book: { ...book, animals: [next, ...book.animals] } };
 }
@@ -534,6 +540,31 @@ function dosesFor(book: LivestockBook, earTag: string) {
   return (book.treatmentCases ?? []).filter((item) => item.earTag === earTag).flatMap((item) => item.doses);
 }
 
+function wasteHold(book: LivestockBook, animalId: string | null, nowIso: string) {
+  const source = book.animals.find((item) => item.id === animalId);
+  if (!source) return null;
+  return manureBlockedMessage(dosesFor(book, source.earTag), nowIso, source.earTag);
+}
+
+/** Assign or clear a 15-digit RFID. An empty value removes the tag. */
+export function assignRfid(book: LivestockBook, animalId: string, rfid: string, nowIso: string): LivestockResult {
+  const current = book.animals.find((item) => item.id === animalId);
+  if (!current) return { ok: false, message: "Ternak tidak ditemukan." };
+  const tag = rfid.trim();
+  if (tag && !isIcarRfid(tag)) return { ok: false, message: "RFID ICAR berisi 15 digit angka." };
+  if (tag && book.animals.some((item) => item.id !== current.id && item.rfid === tag)) {
+    return { ok: false, message: "RFID ini sudah terpasang pada ternak lain." };
+  }
+  return {
+    ok: true,
+    id: current.id,
+    book: {
+      ...book,
+      animals: book.animals.map((item) => (item.id === current.id ? { ...item, rfid: tag, updatedAt: nowIso } : item)),
+    },
+  };
+}
+
 export function removeAnimal(book: LivestockBook, animalId: string): LivestockResult {
   const current = book.animals.find((item) => item.id === animalId);
   if (!current) return { ok: false, message: "Ternak tidak ditemukan." };
@@ -550,6 +581,8 @@ export function recordWaste(book: LivestockBook, draft: WasteDraft, id: string, 
   const source = book.animals.find((item) => item.id === draft.animalId);
   if (!source) return { ok: false, message: "Pilih ternak asal kotoran." };
   if (source.health === "terjual") return { ok: false, message: "Ternak yang sudah terjual tidak menghasilkan kohe." };
+  const held = manureBlockedMessage(dosesFor(book, source.earTag), nowIso, source.earTag);
+  if (held) return { ok: false, message: held };
   if (!Number.isFinite(draft.massKg) || draft.massKg <= 0 || draft.massKg > 10000) {
     return { ok: false, message: "Massa kohe harus di atas 0 dan paling besar 10.000 kg." };
   }
@@ -566,10 +599,12 @@ export function recordWaste(book: LivestockBook, draft: WasteDraft, id: string, 
   return { ok: true, id, book: { ...book, waste: [row, ...book.waste] } };
 }
 
-export function allocateWaste(book: LivestockBook, wasteId: string): LivestockResult {
+export function allocateWaste(book: LivestockBook, wasteId: string, nowIso: string): LivestockResult {
   const row = book.waste.find((item) => item.id === wasteId);
   if (!row) return { ok: false, message: "Catatan kohe tidak ditemukan." };
   if (row.status === "masuk_produksi") return { ok: false, message: "Kohe ini sudah masuk produksi." };
+  const held = wasteHold(book, row.animalId, nowIso);
+  if (held) return { ok: false, message: held };
   if (SPECIES_PRODUCT_FAMILY[row.species] === null) {
     return { ok: false, message: "Kohe bebek belum punya SKU pupuk padat. Konversi lewat POC." };
   }
@@ -637,10 +672,12 @@ export function planWastePack(row: WasteOutput, variant: VariantId, packages: nu
   return { ok: true, freshKg: freshKgForPackages(packages, row.species, variant, products) };
 }
 
-export function issueWaste(book: LivestockBook, wasteId: string, freshKg: number): LivestockResult {
+export function issueWaste(book: LivestockBook, wasteId: string, freshKg: number, nowIso: string): LivestockResult {
   const row = book.waste.find((item) => item.id === wasteId);
   if (!row) return { ok: false, message: "Catatan kohe tidak ditemukan." };
   if (row.status !== "tersedia") return { ok: false, message: "Kohe ini sudah masuk produksi." };
+  const held = wasteHold(book, row.animalId, nowIso);
+  if (held) return { ok: false, message: held };
   if (!Number.isFinite(freshKg) || freshKg <= 0) return { ok: false, message: "Massa konversi tidak valid." };
   if (freshKg - row.massKg > 0.05) return { ok: false, message: "Massa segar tidak mencukupi." };
   const left = Math.round((row.massKg - freshKg) * 10) / 10;

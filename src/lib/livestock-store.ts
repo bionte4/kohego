@@ -1,6 +1,7 @@
 import { parseHealthLogs } from "@/lib/health";
 import { parseScheduledTreatments } from "@/lib/medical-schedule";
 import { parseMedicalHistory, parseTreatmentCases } from "@/lib/treatment";
+import { isIcarRfid } from "@/lib/identification";
 import { createLivestockSeed, isLifeStage, type Animal, type AnimalGender, type FeedLog, type LivestockBook, type LivestockSpecies, type ProductionBatch, type WeightCheck } from "@/lib/livestock";
 import { noteLedgerWrite } from "@/lib/ledger-bus";
 
@@ -36,6 +37,7 @@ function migrateAnimal(raw: Partial<Animal> & Pick<Animal, "id" | "earTag" | "sp
     stage: isLifeStage(raw.stage) ? raw.stage : "dewasa",
     sireTag: typeof raw.sireTag === "string" && raw.sireTag.trim() ? raw.sireTag.trim().toUpperCase() : null,
     damTag: typeof raw.damTag === "string" && raw.damTag.trim() ? raw.damTag.trim().toUpperCase() : null,
+    rfid: typeof raw.rfid === "string" && isIcarRfid(raw.rfid.trim()) ? raw.rfid.trim() : "",
   };
 }
 
@@ -160,7 +162,7 @@ export function getLivestockClient() {
     memory = { ...memory, feedLogs: [] };
     wroteInitial = false;
   }
-  if (memory.animals.some((animal) => !animal.stage)) {
+  if (memory.animals.some((animal) => !animal.stage || typeof animal.rfid !== "string")) {
     memory = parseLivestockBook(memory) ?? memory;
     wroteInitial = false;
   }

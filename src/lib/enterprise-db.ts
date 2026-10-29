@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { CompostBalance } from "@/lib/compost";
 import type { ConsignmentRow } from "@/lib/consignment";
+import { PHARMACOLOGY_STANDARDS } from "@/lib/pharmacology-standards";
 import { VETERINARY_RULES } from "@/lib/veterinary-rules";
 import type { FieldVisit } from "@/lib/types";
 import { getDb } from "@/lib/social/db";
@@ -116,6 +117,46 @@ export async function persistVeterinaryRules() {
     if (count > 0) return { stored: true as const };
     await db.veterinaryRule.createMany({
       data: VETERINARY_RULES.map((rule) => ({ id: rule.id, symptom: rule.symptom, protocolId: rule.protocolId, summary: rule.summary })),
+    });
+    return { stored: true as const };
+  } catch (error) {
+    if (missed(error)) return { stored: false as const };
+    throw error;
+  }
+}
+
+export async function persistRegistry(input: { earTag: string; rfidTag: string }) {
+  const db = getDb();
+  if (!db) return { stored: false as const };
+  try {
+    await db.livestockRegistry.upsert({
+      where: { earTag: input.earTag },
+      create: input,
+      update: { rfidTag: input.rfidTag },
+    });
+    return { stored: true as const };
+  } catch (error) {
+    if (missed(error)) return { stored: false as const };
+    throw error;
+  }
+}
+
+export async function persistPharmacologyStandards() {
+  const db = getDb();
+  if (!db) return { stored: false as const };
+  try {
+    const count = await db.pharmacologyStandard.count();
+    if (count > 0) return { stored: true as const };
+    await db.pharmacologyStandard.createMany({
+      data: PHARMACOLOGY_STANDARDS.map((item) => ({
+        id: item.id,
+        medicineName: item.medicineName,
+        species: item.species,
+        withdrawalDays: item.withdrawalDays,
+        blocksHarvest: item.blocksHarvest,
+        blocksManure: item.blocksManure,
+        residueNote: item.residueNote,
+      })),
     });
     return { stored: true as const };
   } catch (error) {
