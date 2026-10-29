@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthGate } from "@/components/access/auth-gate";
@@ -43,7 +44,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full bg-paper font-sans text-ink">
         <RoleProvider>
           <StoreProvider>
-            <AuthGate>{children}</AuthGate>
+            <Suspense fallback={<p className="px-6 py-16 text-sm text-slate-500">Memeriksa sesi...</p>}>
+              <AuthGate>{children}</AuthGate>
+            </Suspense>
           </StoreProvider>
         </RoleProvider>
       </body>
