@@ -56,7 +56,7 @@ export function MixChart({ slices }: { slices: MixSlice[] }) {
           </svg>
           <ul className="w-full space-y-3">
             {slices.map((slice) => (
-              <li key={slice.family} className="flex items-start justify-between gap-3 text-sm">
+              <li key={slice.family} className="flex min-h-11 items-center justify-between gap-3 text-sm">
                 <span className="flex min-w-0 items-center gap-2 font-medium">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} />
                   <span className="truncate">{slice.label}</span>

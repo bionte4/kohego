@@ -65,14 +65,14 @@ export function KpiGrid({ metrics }: { metrics: DashboardMetrics }) {
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <article key={card.label} className="flex min-h-36 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm text-slate-500">{card.label}</p>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-50 text-forest-800">
                   <Icon className="h-5 w-5" aria-hidden />
                 </span>
               </div>
-              <p className="mt-3 font-display text-xl leading-tight tracking-tight text-ink tabular-nums sm:text-2xl">
+              <p className="mt-auto pt-3 font-display text-xl leading-tight tracking-tight text-ink tabular-nums sm:text-2xl">
                 {card.value}
               </p>
               {card.hint}
@@ -80,12 +80,12 @@ export function KpiGrid({ metrics }: { metrics: DashboardMetrics }) {
           );
         })}
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 lg:grid-cols-4">
         {tiles.map((tile) => (
-          <article key={tile.label} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <article key={tile.label} className="bg-white px-4 py-3">
             <p className="text-xs text-slate-500">{tile.label}</p>
             <p className="mt-1 text-base font-semibold tabular-nums text-ink">{tile.value}</p>
-            <p className="mt-1 text-xs text-slate-500">{tile.hint}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{tile.hint}</p>
           </article>
         ))}
       </div>

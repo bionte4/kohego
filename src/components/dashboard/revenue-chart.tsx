@@ -12,9 +12,9 @@ export function RevenueChart({ weeks }: { weeks: WeekBucket[] }) {
   const max = Math.max(...weeks.map((week) => week.revenue), 1);
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardTitle>Pendapatan 8 minggu</CardTitle>
-      <div className="flex h-48 items-end gap-1.5 sm:gap-2">
+      <div className="mt-auto flex h-48 items-end gap-1.5 sm:gap-2">
         {weeks.map((week) => {
           const height = Math.max(week.revenue > 0 ? 8 : 2, (week.revenue / max) * 100);
           const selected = week.key === active?.key;
@@ -44,7 +44,7 @@ export function RevenueChart({ weeks }: { weeks: WeekBucket[] }) {
         ))}
       </div>
       {active ? (
-        <dl className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-paper p-3 text-sm">
+        <dl className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-forest-50 p-3 text-sm">
           <div>
             <dt className="text-xs text-slate-500">Minggu {active.label}</dt>
             <dd className="font-semibold tabular-nums">{formatIdr(active.revenue)}</dd>

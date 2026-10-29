@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { useStore } from "@/components/providers/store-provider";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardTitle } from "@/components/ui/card";
+import { DashboardSection } from "@/components/dashboard/section";
+import { Card, CardLink, CardTitle } from "@/components/ui/card";
 import { formatDateTime, formatIdr, formatWeight } from "@/lib/format";
 import { packageUnitLabel } from "@/lib/labels";
 import { getLivestockClient, getLivestockServer, subscribeLivestock } from "@/lib/livestock-store";
@@ -17,18 +18,11 @@ export function WarehouseWidgets({ metrics }: { metrics: DashboardMetrics }) {
   const pending = orders.filter((order) => !order.settled).slice(0, 4);
 
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
-      <Card className="lg:col-span-1">
-        <CardTitle
-          action={
-            <Link href="/inventori" className="text-sm font-medium text-forest-800">
-              Inventori
-            </Link>
-          }
-        >
-          Stok kemasan
-        </CardTitle>
-        <ul className="space-y-2">
+    <DashboardSection title="Gudang" action={<CardLink href="/inventori">Inventori</CardLink>}>
+    <div className="grid items-start gap-3 lg:grid-cols-2">
+      <Card>
+        <CardTitle>Stok kemasan</CardTitle>
+        <ul className="divide-y divide-slate-100">
           {products.map((product) => {
             const qty = warehouses.reduce((sum, warehouse) => sum + stockQty(stock, warehouse.id, product.id), 0);
             return (
@@ -43,23 +37,17 @@ export function WarehouseWidgets({ metrics }: { metrics: DashboardMetrics }) {
         </ul>
       </Card>
       <Card>
-        <CardTitle
-          action={
-            <Link href="/kandang" className="text-sm font-medium text-forest-800">
-              Produksi
-            </Link>
-          }
-        >
+        <CardTitle action={<CardLink href="/kandang">Produksi</CardLink>}>
           Batch konversi
         </CardTitle>
         {!book || book.batches.length === 0 ? (
           <p className="text-sm text-slate-500">Belum ada batch selesai.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y divide-slate-100">
             {book.batches.slice(0, 4).map((batch) => {
               const product = products.find((item) => item.id === batch.variantId);
               return (
-                <li key={batch.id} className="text-sm">
+                <li key={batch.id} className="py-2 text-sm">
                   <span className="flex items-center justify-between gap-2">
                     <span className="font-medium">{product?.label ?? batch.variantId}</span>
                     <Badge tone="forest">Selesai</Badge>
@@ -76,9 +64,10 @@ export function WarehouseWidgets({ metrics }: { metrics: DashboardMetrics }) {
           Kohe tersedia {formatWeight(book ? book.waste.filter((row) => row.status === "tersedia").reduce((sum, row) => sum + row.massKg, 0) : 0)}.
         </p>
       </Card>
+    </div>
+    <div className="grid gap-3 lg:grid-cols-2">
       <Card>
-        <CardTitle>Perlu dipenuhi</CardTitle>
-        <p className="mb-2 text-sm font-medium text-ink">Stok menipis</p>
+        <CardTitle>Stok menipis</CardTitle>
         {metrics.lowStock.length === 0 ? (
           <p className="text-sm text-slate-500">Semua varian di atas batas minimum.</p>
         ) : (
@@ -101,7 +90,9 @@ export function WarehouseWidgets({ metrics }: { metrics: DashboardMetrics }) {
             })}
           </ul>
         )}
-        <p className="mb-2 mt-4 text-sm font-medium text-ink">Pesanan belum lunas</p>
+      </Card>
+      <Card>
+        <CardTitle>Pesanan belum lunas</CardTitle>
         {pending.length === 0 ? (
           <p className="text-sm text-slate-500">Tidak ada pesanan terbuka.</p>
         ) : (
@@ -123,5 +114,6 @@ export function WarehouseWidgets({ metrics }: { metrics: DashboardMetrics }) {
         )}
       </Card>
     </div>
+    </DashboardSection>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { Card, CardTitle } from "@/components/ui/card";
+import { DashboardSection } from "@/components/dashboard/section";
+import { Card, CardLink, CardTitle } from "@/components/ui/card";
 import { getPublisherClient, getPublisherServer, subscribePublisher } from "@/lib/publisher-store";
 import { publisherPulse } from "@/lib/role-dashboard";
 
@@ -16,16 +16,9 @@ export function PublisherWidget() {
     { label: "Gagal", value: pulse.gagal, className: "bg-earth-100 text-earth-900" },
   ];
   return (
+    <DashboardSection title="Kanal" action={<CardLink href="/publisher">Publisher</CardLink>}>
     <Card>
-      <CardTitle
-        action={
-          <Link href="/publisher" className="text-sm font-medium text-forest-800">
-            Publisher
-          </Link>
-        }
-      >
-        Status kanal
-      </CardTitle>
+      <CardTitle>Status kiriman</CardTitle>
       <div className="grid grid-cols-3 gap-2">
         {cells.map((cell) => (
           <div key={cell.label} className={`rounded-xl px-3 py-3 ${cell.className}`}>
@@ -34,7 +27,8 @@ export function PublisherWidget() {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-sm text-slate-600">{pulse.posts} kiriman di antrian perangkat. Angka ini simulasi, bukan unggahan langsung ke TikTok atau Meta.</p>
+      <p className="mt-3 text-sm leading-6 text-slate-600">{pulse.posts} kiriman di antrian perangkat. Angka ini simulasi, bukan unggahan langsung ke TikTok atau Meta.</p>
     </Card>
+    </DashboardSection>
   );
 }

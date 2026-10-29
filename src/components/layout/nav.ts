@@ -50,7 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Dasbor",
     shortLabel: "Dasbor",
     title: "Dasbor",
-    subtitle: "Pendapatan, tonase, dan komposisi produk",
+    subtitle: "Ringkasan kandang, gudang, dan penjualan",
     icon: LayoutDashboard,
     group: "operasi",
     mobile: false,

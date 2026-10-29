@@ -10,12 +10,13 @@ import { RegionalPartners, SalesPerformance, SalesShortcut } from "@/components/
 import { WarehouseWidgets } from "@/components/dashboard/warehouse-widgets";
 import { useStoreState } from "@/components/providers/store-provider";
 import { ResetDemoButton } from "@/components/layout/reset-demo-button";
+import { DashboardSection } from "@/components/dashboard/section";
 import { KpiGrid } from "@/components/dashboard/kpi-grid";
 import { MixChart } from "@/components/dashboard/mix-chart";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { OrderList } from "@/components/sales/order-list";
 import { buttonClass } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card, CardLink, CardTitle } from "@/components/ui/card";
 import { productById } from "@/lib/catalog";
 import { formatIdr, formatIdrCompact } from "@/lib/format";
 import { packageUnitLabel } from "@/lib/labels";
@@ -39,17 +40,17 @@ export function DashboardView() {
   const showPublisher = role === "SUPER_ADMIN";
   const intro =
     role === "FARM_MANAGER"
-      ? "Ringkasan kandang: populasi, kesehatan, kohe yang terkumpul, dan bobot hidup."
+      ? "Populasi, kesehatan, dan kohe yang masih bisa dikemas."
       : role === "WAREHOUSE_ADMIN"
         ? "Stok kemasan, batch konversi, dan pesanan yang belum lunas."
         : role === "FIELD_SALES"
-          ? "Kinerja penjualan pada perangkat ini, plus mitra di wilayah kerja Anda."
-          : "Angka 30 hari dihitung dari pesanan di perangkat ini. Tonase hanya menghitung pupuk padat. Penagihan mencakup seluruh konsinyasi yang belum lunas.";
+          ? "Penjualan di perangkat ini dan mitra di wilayah kerja."
+          : "Kandang dan gudang di atas, penjualan 30 hari di bawah. Tonase hanya menghitung pupuk padat.";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-xl text-sm leading-6 text-slate-600">{intro}</p>
+        <p className="max-w-2xl text-sm leading-6 text-slate-600">{intro}</p>
         {showSales && role !== "FIELD_SALES" ? (
           <Link href="/orders/fast" className={buttonClass("primary", "shrink-0")}>
             <ClipboardList className="h-4 w-4" aria-hidden />
@@ -61,20 +62,19 @@ export function DashboardView() {
       {showFarm ? <FarmWidgets /> : null}
       {showWarehouse ? <WarehouseWidgets metrics={metrics} /> : null}
       {role === "FIELD_SALES" ? (
-        <div className="grid gap-3 lg:grid-cols-2">
-          <SalesShortcut />
-          <RegionalPartners metrics={metrics} />
-        </div>
+        <DashboardSection title="Penjualan">
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            <SalesShortcut />
+            <RegionalPartners metrics={metrics} />
+          </div>
+          <SalesPerformance metrics={metrics} />
+        </DashboardSection>
       ) : null}
-      {role === "FIELD_SALES" ? <SalesPerformance metrics={metrics} /> : null}
-      {showPublisher ? <PublisherWidget /> : null}
-
       {showSales && role !== "FIELD_SALES" ? (
-        <>
-
+        <DashboardSection title="Penjualan">
       <KpiGrid metrics={metrics} />
 
-      <div className="grid gap-3 lg:grid-cols-5">
+      <div className="grid items-stretch gap-3 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <RevenueChart weeks={metrics.weeks} />
         </div>
@@ -92,7 +92,7 @@ export function DashboardView() {
             <ul className="space-y-3">
               {metrics.topPartners.map((partner) => (
                 <li key={partner.partnerId}>
-                  <Link href={`/mitra?id=${partner.partnerId}`} className="block min-h-11 rounded-xl">
+                  <Link href={`/mitra?id=${partner.partnerId}`} className="block min-h-11 rounded-xl px-2 py-1 hover:bg-forest-50">
                     <span className="mb-1 flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{partner.name}</span>
                       <span className="shrink-0 tabular-nums text-slate-600">
@@ -115,9 +115,7 @@ export function DashboardView() {
         <Card>
           <CardTitle
             action={
-              <Link href="/inventori" className="text-sm font-medium text-forest-800">
-                Stok
-              </Link>
+              <CardLink href="/inventori">Stok</CardLink>
             }
           >
             Perlu perhatian
@@ -183,13 +181,8 @@ export function DashboardView() {
         </Card>
       </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-display text-xl text-ink">Pesanan terbaru</h2>
-          <Link href="/orders/fast" className="text-sm font-medium text-forest-800">
-            Semua penjualan
-          </Link>
-        </div>
+      <div className="space-y-3">
+        <h3 className="font-display text-xl text-ink">Pesanan terbaru</h3>
         <OrderList
           orders={metrics.recentOrders}
           partners={store.partners}
@@ -203,13 +196,14 @@ export function DashboardView() {
           }
           empty="Belum ada pesanan."
         />
-      </section>
+      </div>
 
       <div className="md:hidden">
         <ResetDemoButton className="text-earth-800" />
       </div>
-        </>
+        </DashboardSection>
       ) : null}
+      {showPublisher ? <PublisherWidget /> : null}
     </div>
   );
 }

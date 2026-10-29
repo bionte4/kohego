@@ -54,11 +54,13 @@ export type StoreApi = { ready: false } | ({ ready: true } & AppData & StoreActi
 
 const StoreContext = createContext<StoreApi | null>(null);
 
-export function useStoreState() {
+export function useStoreState(): StoreApi {
   const store = useContext(StoreContext);
+  const hydrated = useSyncExternalStore(subscribeHydration, isHydrated, isHydratedOnServer);
   if (!store) {
     throw new Error("useStore harus dipakai di dalam data penjualan.");
   }
+  if (!hydrated) return { ready: false };
   return store;
 }
 
@@ -85,8 +87,22 @@ function Toast({ message }: { message: string | null }) {
 
 const SAVE_FAILED = "Perubahan tidak tersimpan. Penyimpanan browser penuh atau diblokir.";
 
+function subscribeHydration() {
+  return () => {};
+}
+
+/** False on the server and during hydration, so the first paint matches the static shell. */
+function isHydrated() {
+  return true;
+}
+
+function isHydratedOnServer() {
+  return false;
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const data = useSyncExternalStore(subscribeStore, getClientSnapshot, getServerSnapshot);
+  const hydrated = useSyncExternalStore(subscribeHydration, isHydrated, isHydratedOnServer);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -330,7 +346,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const api = useMemo<StoreApi>(() => {
-    if (!data) return { ready: false };
+    if (!hydrated || !data) return { ready: false };
     return {
       ready: true,
       ...data,
@@ -354,6 +370,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       resetDemo,
     };
   }, [
+    hydrated,
     data,
     placeOrder,
     receiveStock,

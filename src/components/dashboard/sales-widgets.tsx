@@ -4,7 +4,7 @@ import { ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useStore } from "@/components/providers/store-provider";
 import { buttonClass } from "@/components/ui/button";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card, CardLink, CardTitle } from "@/components/ui/card";
 import { formatIdr } from "@/lib/format";
 import { PARTNER_TYPE_LABEL } from "@/lib/labels";
 import type { DashboardMetrics } from "@/lib/metrics";
@@ -32,9 +32,7 @@ export function RegionalPartners({ metrics }: { metrics: DashboardMetrics }) {
     <Card>
       <CardTitle
         action={
-          <Link href="/mitra" className="text-sm font-medium text-forest-800">
-            Semua mitra
-          </Link>
+          <CardLink href="/mitra">Semua mitra</CardLink>
         }
       >
         Mitra wilayah
@@ -45,7 +43,7 @@ export function RegionalPartners({ metrics }: { metrics: DashboardMetrics }) {
           const rank = metrics.topPartners.find((item) => item.partnerId === partner.id);
           return (
             <li key={partner.id}>
-              <Link href={`/mitra?id=${partner.id}`} className="flex min-h-11 items-center justify-between gap-3 text-sm">
+              <Link href={`/mitra?id=${partner.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-2 text-sm hover:bg-forest-50">
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{partner.name}</span>
                   <span className="text-xs text-slate-500">
@@ -71,10 +69,10 @@ export function SalesPerformance({ metrics }: { metrics: DashboardMetrics }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {cards.map((card) => (
-        <Card key={card.label}>
+        <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <p className="text-sm text-slate-500">{card.label}</p>
-          <p className="mt-1 font-display text-2xl text-ink">{card.value}</p>
-        </Card>
+          <p className="mt-2 font-display text-2xl leading-tight text-ink tabular-nums">{card.value}</p>
+        </article>
       ))}
     </div>
   );

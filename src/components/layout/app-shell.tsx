@@ -156,7 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav aria-label="Jejak">
                 <ol className="flex items-center gap-1 text-xs text-slate-500">
                   <li>
-                    <Link href="/" className="hover:text-forest-800">
+                    <Link href="/" className="inline-flex min-h-11 items-center hover:text-forest-800">
                       Kohego
                     </Link>
                   </li>
