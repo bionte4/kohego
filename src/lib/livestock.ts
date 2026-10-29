@@ -1,6 +1,7 @@
 import { PRODUCTS } from "@/lib/catalog";
 import { herdStatusForCheck, seedHealthLogs, type HealthLog } from "@/lib/health";
 import { seedScheduledTreatments, type ScheduledTreatment } from "@/lib/medical-schedule";
+import type { DailyInspection } from "@/lib/inspection";
 import type { MedicalHistoryEntry, TreatmentCase } from "@/lib/treatment";
 import { isIcarRfid } from "@/lib/identification";
 import { manureBlockedMessage, saleBlockedMessage } from "@/lib/withdrawal";
@@ -104,6 +105,7 @@ export interface LivestockBook {
   scheduledTreatments: ScheduledTreatment[];
   weightChecks: WeightCheck[];
   feedLogs: FeedLog[];
+  inspections: DailyInspection[];
 }
 
 export interface WeightCheck {
@@ -327,6 +329,7 @@ export function createLivestockSeed(): LivestockBook {
       { id: "fed-spi-1", earTag: "SPI-102", fedOn: "2026-10-01", feedKg: 84 },
       { id: "fed-spi-2", earTag: "SPI-102", fedOn: "2026-10-14", feedKg: 84 },
     ],
+    inspections: [],
   };
 }
 

@@ -2,6 +2,7 @@ import { parseHealthLogs } from "@/lib/health";
 import { parseScheduledTreatments } from "@/lib/medical-schedule";
 import { parseMedicalHistory, parseTreatmentCases } from "@/lib/treatment";
 import { isIcarRfid } from "@/lib/identification";
+import { parseInspections } from "@/lib/inspection";
 import { createLivestockSeed, isLifeStage, type Animal, type AnimalGender, type FeedLog, type LivestockBook, type LivestockSpecies, type ProductionBatch, type WeightCheck } from "@/lib/livestock";
 import { noteLedgerWrite } from "@/lib/ledger-bus";
 
@@ -55,6 +56,7 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     scheduledTreatments?: unknown;
     weightChecks?: unknown;
     feedLogs?: unknown;
+    inspections?: unknown;
   };
   if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.pens) || !Array.isArray(parsed.animals) || !Array.isArray(parsed.waste)) {
     return null;
@@ -71,6 +73,7 @@ export function parseLivestockBook(input: unknown): LivestockBook | null {
     scheduledTreatments: parseScheduledTreatments(parsed.scheduledTreatments),
     weightChecks: parseWeightChecks(parsed.weightChecks),
     feedLogs: parseFeedLogs(parsed.feedLogs),
+    inspections: parseInspections(parsed.inspections),
   };
 }
 
@@ -160,6 +163,10 @@ export function getLivestockClient() {
   }
   if (!Array.isArray(memory.feedLogs)) {
     memory = { ...memory, feedLogs: [] };
+    wroteInitial = false;
+  }
+  if (!Array.isArray(memory.inspections)) {
+    memory = { ...memory, inspections: [] };
     wroteInitial = false;
   }
   if (memory.animals.some((animal) => !animal.stage || typeof animal.rfid !== "string")) {

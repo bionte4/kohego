@@ -11,7 +11,7 @@ const ROLE_ORDER: Role[] = ["SUPER_ADMIN", "FARM_MANAGER", "FARM_KEEPER", "WAREH
 const ROLE_HINT: Record<Role, string> = {
   SUPER_ADMIN: "Hulu, konversi, penjualan, dan kanal",
   FARM_MANAGER: "Ternak, kesehatan, dan kohe",
-  FARM_KEEPER: "Pemeriksaan, jadwal pengobatan, dan kohe",
+  FARM_KEEPER: "Inspeksi harian, pengobatan, dan kohe",
   WAREHOUSE_ADMIN: "Stok kemasan dan batch produksi",
   FIELD_SALES: "Pesanan dan mitra wilayah",
 };

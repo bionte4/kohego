@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { useRole } from "@/components/access/role-provider";
 import { AccountMenu } from "@/components/access/account-menu";
+import { NoticeBell } from "@/components/layout/notice-bell";
 import { ResetDemoButton } from "@/components/layout/reset-demo-button";
 import { mobileNav, moduleNav, NAV_GROUPS, NAV_ITEMS, navItemsFor, isActive, type NavGroupId } from "@/components/layout/nav";
 import { formatLongDate } from "@/lib/format";
@@ -172,6 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-sm text-slate-500">{current?.subtitle}</p>
             </div>
             {today ? <p className="hidden text-right text-sm text-slate-500 lg:block">{today}</p> : null}
+            <NoticeBell />
             <AccountMenu />
           </div>
           <div className="flex gap-2 overflow-x-auto px-4 pb-3 md:hidden">
